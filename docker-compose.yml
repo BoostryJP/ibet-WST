@@ -1,0 +1,15 @@
+services:
+  hardhat-network:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile_hardhat
+    ports:
+      - "8545:8545"
+  sc-unit-test:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile_unittest
+    environment:
+      TEST_NETWORK: "test_network"
+    volumes:
+      - ./output:/app/ibet-WST/output

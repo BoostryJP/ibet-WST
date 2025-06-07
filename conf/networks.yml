@@ -1,0 +1,14 @@
+live:
+- name: ibet
+  networks:
+  - id: local_network
+    name: Local Network
+    chainid: 2025
+    host: http://localhost:8545
+development:
+- id: test_network
+  name: Hardhat Network
+  host: http://localhost:8545
+  cmd: npx hardhat --config ./hardhat.config.js node
+  cmd_settings:
+    port: 8545
