@@ -19,10 +19,4 @@
 
 pragma solidity ^0.8.0;
 
-library ErrorCode {
-    // 50XXXX
-    // Ownable_onlyOwner
-    string constant ERR_Ownable_onlyOwner_500001 = "500001";
-    // Ownable_transferOwnership
-    string constant ERR_Ownable_transferOwnership_500101 = "500101";
-}
+library ErrorCode {}

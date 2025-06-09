@@ -27,10 +27,11 @@ class TestDeploy:
 
     # Normal_1
     def test_normal_1(self, IbetERC20, users):
-        issuer = users["user1"]
+        admin = users["user1"]
+        issuer = users["user2"]
 
         # deploy
-        token = issuer.deploy(IbetERC20)
+        token = admin.deploy(IbetERC20, issuer.address)
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -47,10 +48,11 @@ class TestMint:
 
     # Normal_1
     def test_normal_1(self, IbetERC20, users):
-        issuer = users["user1"]
+        admin = users["user1"]
+        issuer = users["user2"]
 
         # deploy
-        token = issuer.deploy(IbetERC20)
+        token = admin.deploy(IbetERC20, issuer.address)
 
         # mint
         token.mint(issuer.address, 10, {"from": issuer})
@@ -68,12 +70,15 @@ class TestMint:
 
     # Error_1
     def test_error_1(self, IbetERC20, users):
-        issuer = users["user1"]
-        other = users["user2"]
+        admin = users["user1"]
+        issuer = users["user2"]
+        other = users["user3"]
 
         # deploy
-        token = issuer.deploy(IbetERC20)
+        token = admin.deploy(IbetERC20, issuer.address)
 
         # mint
-        with brownie.reverts(revert_msg="Ownable: caller is not the owner"):
+        with brownie.reverts(
+            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
+        ):
             token.mint(issuer.address, 10, {"from": other})
