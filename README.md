@@ -10,7 +10,7 @@ $ make install
 
 Install openzeppelin-contracts.
 ```
-$ brownie pm install OpenZeppelin/openzeppelin-contracts@4.9.3
+$ brownie pm install OpenZeppelin/openzeppelin-contracts@5.3.0
 ```
 
 Install hardhat as a Node.js package.
