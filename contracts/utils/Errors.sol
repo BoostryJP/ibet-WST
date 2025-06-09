@@ -19,4 +19,7 @@
 
 pragma solidity ^0.8.0;
 
-library ErrorCode {}
+interface Errors {
+    /// @notice アカウントがホワイトリストに登録されていない場合に発生するエラー
+    error AccountNotWhitelisted(address accountAddress);
+}

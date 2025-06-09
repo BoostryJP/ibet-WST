@@ -34,6 +34,7 @@ class TestDeploy:
         token = admin.deploy(IbetERC20, issuer.address)
 
         # assertion
+        assert token.owner() == issuer.address
         assert token.name() == "IbetERC20"
         assert token.symbol() == ""
         assert token.decimals() == 18
