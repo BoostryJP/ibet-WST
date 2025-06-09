@@ -1,4 +1,4 @@
-# ibet-WST
+# ibet-WST 🌏
 ibet Worldwide Settlement Token
 
 ## Install
