@@ -85,7 +85,7 @@ RUN mkdir -p /app/ibet-WST/tools/
 COPY --chown=apl:apl tools/ /app/ibet-WST/tools/
 COPY --chown=apl:apl brownie-config.yaml /app/ibet-WST/
 RUN mkdir -p /app/ibet-WST/conf/
-COPY --chown=apl:apl data/ /app/ibet-WST/conf/
+COPY --chown=apl:apl conf/ /app/ibet-WST/conf/
 RUN source ~apl/.profile \
  && cd /app/ibet-WST/ \
  && brownie networks import conf/networks.yml
