@@ -18,12 +18,14 @@
  */
 pragma solidity ^0.8.0;
 
-import "OpenZeppelin/openzeppelin-contracts@4.9.3/contracts/token/ERC20/ERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@4.9.3/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "OpenZeppelin/openzeppelin-contracts@4.9.3/contracts/access/Ownable.sol";
+import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/access/Ownable.sol";
 
 contract IbetERC20 is ERC20, ERC20Burnable, Ownable {
-    constructor() ERC20("IbetERC20", "") {}
+    constructor(
+        address initialOwner
+    ) ERC20("IbetERC20", "") Ownable(initialOwner) {}
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
