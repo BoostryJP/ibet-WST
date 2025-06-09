@@ -22,19 +22,17 @@ import pytest
 
 @pytest.fixture()
 def users(accounts):
-    admin = accounts[0]
-    user1 = accounts[1]
-    user2 = accounts[2]
-    user3 = accounts[3]
-    user4 = accounts[4]
-    user5 = accounts[5]
+    eoa1 = accounts[0]
+    eoa2 = accounts[1]
+    eoa3 = accounts[2]
+    eoa4 = accounts[3]
+    eoa5 = accounts[4]
     users = {
-        "admin": admin,
-        "user1": user1,
-        "user2": user2,
-        "user3": user3,
-        "user4": user4,
-        "user5": user5,
+        "eoa1": eoa1,
+        "eoa2": eoa2,
+        "eoa3": eoa3,
+        "eoa4": eoa4,
+        "eoa5": eoa5,
     }
 
     yield users
