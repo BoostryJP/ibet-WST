@@ -22,6 +22,10 @@ import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.so
 import {IbetERC20} from "./IbetERC20.sol";
 import {IbetWSTErrors} from "../utils/Errors.sol";
 
+/// @title ibet WST (Worldwide Settlement Token)
+/// @dev
+///   - This contract extends the IbetERC20 interface to implement a whitelist mechanism for accounts.
+///   - Also implements a trade request system for trading WST and SC (Stable Coin) tokens.
 contract IbetWST is IbetERC20 {
     /// Account whitelist
     mapping(address => bool) public accountWhiteList;
