@@ -27,12 +27,22 @@ def users(accounts):
     eoa3 = accounts[2]
     eoa4 = accounts[3]
     eoa5 = accounts[4]
+    eoa6 = accounts[5]
+    eoa7 = accounts[6]
+    eoa8 = accounts[7]
+    eoa9 = accounts[8]
+    eoa10 = accounts[9]
     users = {
         "eoa1": eoa1,
         "eoa2": eoa2,
         "eoa3": eoa3,
         "eoa4": eoa4,
         "eoa5": eoa5,
+        "eoa6": eoa6,
+        "eoa7": eoa7,
+        "eoa8": eoa8,
+        "eoa9": eoa9,
+        "eoa10": eoa10,
     }
 
     yield users
