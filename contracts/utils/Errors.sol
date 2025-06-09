@@ -19,14 +19,14 @@
 
 pragma solidity ^0.8.0;
 
-/// @title ibetWSTのエラー
+/// @title Errors for ibetWST
 interface IbetWSTErrors {
-    /// @notice アカウントがホワイトリストに登録されていない場合に発生するエラー
+    /// @dev Error thrown when an account is not registered in the whitelist
     error AccountNotWhitelisted(address accountAddress);
 
-    /// @notice tradeRequestのステータスがAcceptableでない場合に発生するエラー
+    /// @dev Error thrown when the trade status is not Acceptable
     error TradeRequestIsNotAcceptable(uint256 index);
 
-    /// @notice tradeRequestをAcceptする権限がない場合に発生するエラー
+    /// @dev Error thrown when the caller does not have permission to accept the trade
     error TradeRequestNotAcceptableByCaller(uint256 index, address caller);
 }
