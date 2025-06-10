@@ -30,3 +30,17 @@ interface IbetWSTErrors {
     /// @dev Error thrown when the caller does not have permission to accept the trade
     error TradeRequestNotAcceptableByCaller(uint256 index, address caller);
 }
+
+interface AuthIbetWSTErrors {
+    /// @dev トランザクションが有効期間内ではない場合にスローされるエラー
+    error TransactionNotInValidPeriod(uint256 validAfter, uint256 validBefore);
+
+    /// @dev 認可ナンスが既に使用されている場合にスローされるエラー
+    error AuthorizationNonceAlreadyUsed(address from, bytes32 nonce);
+
+    /// @dev 認可の署名が無効な場合にスローされるエラー
+    error InvalidAuthorizationSignature();
+
+    /// @dev 受取移転トランザクションの送信者が受取人ではない場合にスローされるエラー
+    error ReceiveTransactionSenderNotRecipient(address sender, address to);
+}
