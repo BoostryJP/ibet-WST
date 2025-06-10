@@ -39,7 +39,7 @@ interface AuthIbetWSTErrors {
     error AuthorizationNonceAlreadyUsed(address from, bytes32 nonce);
 
     /// @dev 認可の署名が無効な場合にスローされるエラー
-    error InvalidAuthorizationSignature();
+    error InvalidAuthorizationSignature(address authorizer);
 
     /// @dev 受取移転トランザクションの送信者が受取人ではない場合にスローされるエラー
     error ReceiveTransactionSenderNotRecipient(address sender, address to);

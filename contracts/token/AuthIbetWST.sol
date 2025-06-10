@@ -134,7 +134,7 @@ contract AuthIbetWST is IbetWST {
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != from && recoveredAddress != address(0)) {
             // Throw an error if the signature does not match the sender's address
-            revert AuthIbetWSTErrors.InvalidAuthorizationSignature();
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(from);
         }
         // Mark the nonce as used and emit an event
         usedNonces[from][nonce] = true;
