@@ -70,19 +70,8 @@ contract AuthIbetWST is IbetWST {
     }
 
     // [INTERNAL-FUNCTION]
-    /// @notice Internal process for token transfer with signature
-    /// @dev This function verifies and executes a signed transaction
     /// @param typeHash EIP-712 type hash
-    /// @param from Sender address
-    /// @param to Recipient address
-    /// @param value Transfer amount
-    /// @param validAfter Minimum timestamp when the transaction becomes valid
-    /// @param validBefore Maximum timestamp when the transaction becomes invalid
-    /// @param nonce Authorization nonce for the transaction
-    /// @param v v value of the signature
-    /// @param r r value of the signature
-    /// @param s s value of the signature
-    function _transferWithAuth(
+    function _transferWithAuthorization(
         bytes32 typeHash,
         address from,
         address to,
@@ -167,7 +156,7 @@ contract AuthIbetWST is IbetWST {
         bytes32 s
     ) external returns (bool) {
         // Call the internal process for transfer with authorization
-        _transferWithAuth(
+        _transferWithAuthorization(
             TRANSFER_WITH_AUTHORIZATION_TYPEHASH,
             from,
             to,
@@ -214,7 +203,7 @@ contract AuthIbetWST is IbetWST {
             );
         }
         // Call the internal process for transfer with authorization
-        _transferWithAuth(
+        _transferWithAuthorization(
             RECEIVE_WITH_AUTHORIZATION_TYPEHASH,
             from,
             to,

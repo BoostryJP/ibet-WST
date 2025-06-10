@@ -239,25 +239,15 @@ contract IbetWST is IbetERC20 {
         );
     }
 
-    // [FUNCTION]
-    /// @notice Request a trade
-    /// @dev
-    ///   - The buyer's ST account address and SC account address must be whitelisted
-    ///   - The seller's ST account address (msg.sender) must be whitelisted
-    /// @param buyerSTAccountAddress The address of the buyer's ST account
-    /// @param SCTokenAddress The address of the SCToken
-    /// @param sellerSCAccountAddress The address of the seller's SC account
-    /// @param buyerSCAccountAddress The address of the buyer's SC account
-    /// @param STValue The amount of ST tokens to be traded
-    /// @param SCValue The amount of SC tokens to be traded
-    function requestTrade(
+    // [INTERNAL FUNCTION]
+    function _requestTrade(
         address buyerSTAccountAddress,
         address SCTokenAddress,
         address sellerSCAccountAddress,
         address buyerSCAccountAddress,
         uint256 STValue,
         uint256 SCValue
-    ) public returns (bool) {
+    ) internal {
         address sellerSTAccountAddress = _msgSender();
         // Check if the sellerSTAccountAddress is whitelisted
         if (accountWhiteList[sellerSTAccountAddress] == false) {
@@ -291,15 +281,41 @@ contract IbetWST is IbetERC20 {
             STValue,
             SCValue
         );
-        return true;
     }
 
     // [FUNCTION]
-    /// @notice Accept a trade request
+    /// @notice Request a trade
     /// @dev
-    ///   - The trade request must be in the Pending state
-    /// @param index The index of the trade request to be accepted
-    function acceptTrade(uint256 index) public returns (bool) {
+    ///   - The buyer's ST account address and SC account address must be whitelisted
+    ///   - The seller's ST account address (msg.sender) must be whitelisted
+    /// @param buyerSTAccountAddress The address of the buyer's ST account
+    /// @param SCTokenAddress The address of the SCToken
+    /// @param sellerSCAccountAddress The address of the seller's SC account
+    /// @param buyerSCAccountAddress The address of the buyer's SC account
+    /// @param STValue The amount of ST tokens to be traded
+    /// @param SCValue The amount of SC tokens to be traded
+    function requestTrade(
+        address buyerSTAccountAddress,
+        address SCTokenAddress,
+        address sellerSCAccountAddress,
+        address buyerSCAccountAddress,
+        uint256 STValue,
+        uint256 SCValue
+    ) public returns (bool) {
+        // Call the internal function to request a trade
+        _requestTrade(
+            buyerSTAccountAddress,
+            SCTokenAddress,
+            sellerSCAccountAddress,
+            buyerSCAccountAddress,
+            STValue,
+            SCValue
+        );
+        return true;
+    }
+
+    // [INTERNAL-FUNCTION]
+    function _acceptTrade(uint256 index) internal {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
             revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
@@ -337,6 +353,16 @@ contract IbetWST is IbetERC20 {
             _trades[index].STValue,
             _trades[index].SCValue
         );
+    }
+
+    // [FUNCTION]
+    /// @notice Accept a trade request
+    /// @dev
+    ///   - The trade request must be in the Pending state
+    /// @param index The index of the trade request to be accepted
+    function acceptTrade(uint256 index) public returns (bool) {
+        // Call the internal function to accept the trade
+        _acceptTrade(index);
         return true;
     }
 }
