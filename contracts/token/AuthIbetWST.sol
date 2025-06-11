@@ -20,7 +20,7 @@ pragma solidity ^0.8.0;
 
 import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.sol";
 import {IbetWST} from "./IbetWST.sol";
-import {IbetWSTErrors, AuthIbetWSTErrors} from "../utils/Errors.sol";
+import {AuthIbetWSTErrors} from "../utils/Errors.sol";
 
 /// @title IbetWST with Authorization Feature
 contract AuthIbetWST is IbetWST {
@@ -229,6 +229,7 @@ contract AuthIbetWST is IbetWST {
 
     /// @notice Request a trade with authorization (signature)
     /// @dev
+    ///   - Can be called by anyone
     ///   - The seller's security token account is the authorizer
     ///   - The seller's security token account must be whitelisted
     ///   - The buyer's security token account must also be whitelisted
@@ -258,11 +259,15 @@ contract AuthIbetWST is IbetWST {
     ) external returns (bool) {
         // Check if the sellerSTAccountAddress is whitelisted
         if (accountWhiteList[sellerSTAccountAddress] == false) {
-            revert IbetWSTErrors.AccountNotWhitelisted(sellerSTAccountAddress);
+            revert AuthIbetWSTErrors.AccountNotWhitelisted(
+                sellerSTAccountAddress
+            );
         }
         // Check if the buyerSTAccountAddress is whitelisted
         if (accountWhiteList[buyerSTAccountAddress] == false) {
-            revert IbetWSTErrors.AccountNotWhitelisted(buyerSTAccountAddress);
+            revert AuthIbetWSTErrors.AccountNotWhitelisted(
+                buyerSTAccountAddress
+            );
         }
 
         // Ensure the nonce has not been used
@@ -335,6 +340,7 @@ contract AuthIbetWST is IbetWST {
 
     /// @notice Accept a trade request with authorization (signature)
     /// @dev
+    ///   - Can be called by anyone
     ///   - The buyer's security token account is the authorizer
     /// @param index The index of the trade request to accept
     /// @param nonce The authorization nonce for the transaction
@@ -350,7 +356,7 @@ contract AuthIbetWST is IbetWST {
     ) external returns (bool) {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
-            revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
+            revert AuthIbetWSTErrors.TradeRequestIsNotAcceptable(index);
         }
         // Get the buyer's security token account address from the trade request
         address buyerSTAccountAddress = _trades[index].buyerSTAccountAddress;

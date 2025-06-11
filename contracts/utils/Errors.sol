@@ -32,15 +32,21 @@ interface IbetWSTErrors {
 }
 
 interface AuthIbetWSTErrors {
-    /// @dev トランザクションが有効期間内ではない場合にスローされるエラー
+    /// @dev Error thrown when an account is not registered in the whitelist
+    error AccountNotWhitelisted(address accountAddress);
+
+    /// @dev Error thrown when the transaction is not within the valid period
     error TransactionNotInValidPeriod(uint256 validAfter, uint256 validBefore);
 
-    /// @dev 認可ナンスが既に使用されている場合にスローされるエラー
+    /// @dev Error thrown when the authorization nonce has already been used
     error AuthorizationNonceAlreadyUsed(address from, bytes32 nonce);
 
-    /// @dev 認可の署名が無効な場合にスローされるエラー
+    /// @dev Error thrown when the authorization signature is invalid
     error InvalidAuthorizationSignature(address authorizer);
 
-    /// @dev 受取移転トランザクションの送信者が受取人ではない場合にスローされるエラー
+    /// @dev Error thrown when the sender of the receive transaction is not the recipient
     error ReceiveTransactionSenderNotRecipient(address sender, address to);
+
+    /// @dev Error thrown when the trade status is not acceptable
+    error TradeRequestIsNotAcceptable(uint256 index);
 }
