@@ -31,6 +31,7 @@ interface IbetWSTErrors {
     error TradeRequestNotAcceptableByCaller(uint256 index, address caller);
 }
 
+/// @title Errors for ibetWST with authorization
 interface AuthIbetWSTErrors {
     /// @dev Error thrown when an account is not registered in the whitelist
     error AccountNotWhitelisted(address accountAddress);
