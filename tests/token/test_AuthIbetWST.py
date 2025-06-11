@@ -790,6 +790,8 @@ class TestRequestTradeWithAuthorization:
         buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
         buyer_sc = users["eoa4"]
 
+        relayer = users["eoa5"]
+
         # deploy ST token
         st_token = admin.deploy(AuthIbetWST, issuer.address)
 
@@ -820,7 +822,7 @@ class TestRequestTradeWithAuthorization:
         signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
 
         # request trade with authorization
-        # - transaction is sent not by seller_st_addr but by issuer
+        # - transaction is sent not by seller_st_addr but by relayer
         tx = st_token.requestTradeWithAuthorization(
             seller_st_addr,
             buyer_st_addr,
@@ -833,7 +835,7 @@ class TestRequestTradeWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": issuer},
+            {"from": relayer},
         )
 
         # assertion
@@ -877,6 +879,8 @@ class TestAcceptTradeWithAuthorization:
         buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
         buyer_sc = users["eoa4"]
 
+        relayer = users["eoa5"]
+
         # deploy ST token
         st_token = admin.deploy(AuthIbetWST, issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
@@ -912,7 +916,7 @@ class TestAcceptTradeWithAuthorization:
         signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
-        # - transaction is sent not by seller_st_addr but by issuer
+        # - transaction is sent not by seller_st_addr but by relayer
         st_token.requestTradeWithAuthorization(
             seller_st_addr,
             buyer_st_addr,
@@ -925,7 +929,7 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": issuer},
+            {"from": relayer},
         )
 
         # [ACCEPT-TRADE] generate nonce
@@ -941,14 +945,14 @@ class TestAcceptTradeWithAuthorization:
         signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
-        # - transaction is sent not by buyer_st_addr but by issuer
+        # - transaction is sent not by buyer_st_addr but by relayer
         tx = st_token.acceptTradeWithAuthorization(
             index,
             nonce_2,
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": issuer},
+            {"from": relayer},
         )
 
         # assertion
