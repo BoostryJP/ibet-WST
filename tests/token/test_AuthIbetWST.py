@@ -773,3 +773,197 @@ class TestReceiveWithAuthorization:
                 signature.s,
                 {"from": to_user_addr},
             )
+
+
+class TestRequestTradeWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, issuer.address)
+
+        # deploy SC token
+        sc_token = admin.deploy(IbetERC20, issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate request trade digest
+        digest = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            seller_sc_account_address=seller_sc.address,
+            buyer_sc_account_address=buyer_sc.address,
+            st_value=100,
+            sc_value=200,
+            nonce=nonce,
+        )
+
+        # sign the digest by seller_st_addr
+        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+
+        # request trade with authorization
+        # - transaction is sent not by seller_st_addr but by issuer
+        tx = st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,  # st_value
+            200,  # sc_value
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": issuer},
+        )
+
+        # assertion
+        assert st_token.getNbTrades() == 1
+
+        assert st_token.getTrade(1) == (
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,
+            200,
+            0,  # status (Pending)
+        )
+
+        assert tx.events["TradeRequested"]["index"] == 1
+        assert tx.events["TradeRequested"]["sellerSTAccountAddress"] == seller_st_addr
+        assert tx.events["TradeRequested"]["buyerSTAccountAddress"] == buyer_st_addr
+        assert tx.events["TradeRequested"]["SCTokenAddress"] == sc_token.address
+        assert (
+            tx.events["TradeRequested"]["sellerSCAccountAddress"] == seller_sc.address
+        )
+        assert tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert tx.events["TradeRequested"]["STValue"] == 100
+        assert tx.events["TradeRequested"]["SCValue"] == 200
+
+
+class TestAcceptTradeWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token.mint(seller_st_addr, 100, {"from": issuer})
+
+        # deploy SC token
+        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
+
+        # [REQUEST-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+
+        # [REQUEST-TRADE] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [REQUEST-TRADE] generate request trade digest
+        digest_1 = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            seller_sc_account_address=seller_sc.address,
+            buyer_sc_account_address=buyer_sc.address,
+            st_value=100,
+            sc_value=200,
+            nonce=nonce_1,
+        )
+
+        # [REQUEST-TRADE] sign the digest by seller_st_addr
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by issuer
+        st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,  # st_value
+            200,  # sc_value
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": issuer},
+        )
+
+        # [ACCEPT-TRADE] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [ACCEPT-TRADE] generate request trade digest
+        index = st_token.getNbTrades()
+        digest_2 = eip712_helper.generate_accept_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(), index=index, nonce=nonce_2
+        )
+
+        # [REQUEST-TRADE] sign the digest by buyer_st_addr
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by buyer_st_addr but by issuer
+        tx = st_token.acceptTradeWithAuthorization(
+            index,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": issuer},
+        )
+
+        # assertion
+        assert st_token.getTrade(1)[7] == 1  # status (Executed)
+
+        assert st_token.balanceOf(seller_st_addr) == 0
+        assert st_token.balanceOf(buyer_st_addr) == 100
+        assert sc_token.balanceOf(seller_sc.address) == 200
+        assert sc_token.balanceOf(buyer_sc.address) == 0
+
+        assert tx.events["TradeAccepted"]["index"] == 1
+        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st_addr
+        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st_addr
+        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
+        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
+        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert tx.events["TradeAccepted"]["STValue"] == 100
+        assert tx.events["TradeAccepted"]["SCValue"] == 200

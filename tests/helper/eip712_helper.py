@@ -200,3 +200,123 @@ def generate_receive_digest(
         )
     )
     return digest
+
+
+def generate_request_trade_digest(
+    domain_separator: bytes,
+    seller_st_account_address: str,
+    buyer_st_account_address: str,
+    sc_token_address: str,
+    seller_sc_account_address: str,
+    buyer_sc_account_address: str,
+    st_value: int,
+    sc_value: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for request trade with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param seller_st_account_address: Seller's ST account address
+    :param buyer_st_account_address: Buyer's ST account address
+    :param sc_token_address: SC contract address
+    :param seller_sc_account_address: Seller's SC account address
+    :param buyer_sc_account_address: Buyer's SC account address
+    :param st_value: Amount of ST to trade
+    :param sc_value: Amount of SC to trade
+    :param nonce: Nonce for the trade, used to prevent replay attacks
+    :return: EIP-712 digest for the trade request
+    """
+
+    type_hash = keccak(
+        text="RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # sellerSTAccountAddress
+                "address",  # buyerSTAccountAddress
+                "address",  # SCTokenAddress
+                "address",  # sellerSCAccountAddress
+                "address",  # buyerSCAccountAddress
+                "uint256",  # STValue
+                "uint256",  # SCValue
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(seller_st_account_address),
+                to_checksum_address(buyer_st_account_address),
+                to_checksum_address(sc_token_address),
+                to_checksum_address(seller_sc_account_address),
+                to_checksum_address(buyer_sc_account_address),
+                st_value,
+                sc_value,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
+def generate_accept_trade_digest(
+    domain_separator: bytes,
+    index: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for accept trade with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param index: Index of the trade to accept
+    :param nonce: Nonce for the trade, used to prevent replay attacks
+    :return: EIP-712 digest for the trade acceptance
+    """
+
+    type_hash = keccak(text="AcceptTradeWithAuthorization(uint256 index,bytes32 nonce)")
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "uint256",  # index
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                index,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
