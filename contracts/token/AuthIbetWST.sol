@@ -142,7 +142,7 @@ contract AuthIbetWST is IbetWST {
     }
 
     // [FUNCTION]
-    /// @notice Transfer tokens with authorization (signature)
+    /// @notice Transfer tokens with authorization
     /// @dev Can be called by anyone
     /// @param from The address of the sender
     /// @param to The address of the recipient
@@ -180,7 +180,7 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
-    /// @notice Receive tokens with authorization (signature)
+    /// @notice Receive tokens with authorization
     /// @dev Only the recipient can call this function
     /// @param from The address of the sender
     /// @param to The address of the recipient
@@ -227,19 +227,19 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
-    /// @notice Request a trade with authorization (signature)
+    /// @notice Request a trade with authorization
     /// @dev
     ///   - Can be called by anyone
-    ///   - The seller's security token account is the authorizer
-    ///   - The seller's security token account must be whitelisted
-    ///   - The buyer's security token account must also be whitelisted
-    /// @param sellerSTAccountAddress The address of the seller's security token account (signature authorizer)
-    /// @param buyerSTAccountAddress The address of the buyer's security token account
-    /// @param SCTokenAddress The address of the security token to be traded
-    /// @param sellerSCAccountAddress The address of the seller's smart contract account
-    /// @param buyerSCAccountAddress The address of the buyer's smart contract account
-    /// @param STValue The amount of security tokens to be traded
-    /// @param SCValue The amount of smart contract tokens to be traded
+    ///   - The seller's ST account is the authorizer
+    ///   - The seller's ST account must be whitelisted
+    ///   - The buyer's ST account must be whitelisted
+    /// @param sellerSTAccountAddress The address of the seller's ST account (authorizer)
+    /// @param buyerSTAccountAddress The address of the buyer's ST account
+    /// @param SCTokenAddress The address of the SC contract to be traded
+    /// @param sellerSCAccountAddress The address of the seller's SC account
+    /// @param buyerSCAccountAddress The address of the buyer's SC account
+    /// @param STValue The amount of ST to be traded
+    /// @param SCValue The amount of SC to be traded
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
@@ -338,10 +338,11 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
-    /// @notice Accept a trade request with authorization (signature)
+    /// @notice Accept a trade request with authorization
     /// @dev
     ///   - Can be called by anyone
-    ///   - The buyer's security token account is the authorizer
+    ///   - The buyer's ST account of the trade request is the authorizer
+    ///   - The trade request must be in the Pending state
     /// @param index The index of the trade request to accept
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature

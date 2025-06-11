@@ -242,10 +242,10 @@ contract IbetWST is IbetERC20 {
     // [FUNCTION]
     /// @notice Request a trade
     /// @dev
-    ///   - The buyer's ST account address must be whitelisted
     ///   - The seller's ST account address (msg.sender) must be whitelisted
+    ///   - The buyer's ST account address must be whitelisted
     /// @param buyerSTAccountAddress The address of the buyer's ST account
-    /// @param SCTokenAddress The address of the SCToken
+    /// @param SCTokenAddress The address of the SC contract to be traded
     /// @param sellerSCAccountAddress The address of the seller's SC account
     /// @param buyerSCAccountAddress The address of the buyer's SC account
     /// @param STValue The amount of ST tokens to be traded
