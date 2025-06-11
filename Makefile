@@ -12,7 +12,6 @@ update:
 format:
 	uv run ruff format && uv run ruff check --fix --select I
 	npx prettier --write --plugin=prettier-plugin-solidity contracts/**/*.sol
-	# npx prettier --write --plugin=prettier-plugin-solidity contracts/**/*.sol interfaces/**/*.sol
 
 lint:
 	uv run ruff check --fix
