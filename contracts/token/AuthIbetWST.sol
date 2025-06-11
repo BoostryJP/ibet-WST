@@ -68,7 +68,7 @@ contract AuthIbetWST is IbetWST {
                 ),
                 // Token name
                 keccak256(bytes(name())),
-                // Version (using "1" as an example)
+                // Version
                 keccak256(bytes("1")),
                 // Chain ID
                 chainID,
