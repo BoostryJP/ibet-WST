@@ -39,7 +39,7 @@ contract AuthIbetWST is IbetWST {
 
     bytes32 public constant REQUEST_TRADE_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,bytes32 nonce)"
+            "RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
         );
 
     bytes32 public constant CANCEL_TRADE_WITH_AUTHORIZATION_TYPEHASH =
@@ -243,6 +243,7 @@ contract AuthIbetWST is IbetWST {
     /// @param buyerSCAccountAddress The address of the buyer's SC account
     /// @param STValue The amount of ST to be traded
     /// @param SCValue The amount of SC to be traded
+    /// @param memo Optional memo for the trade request
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
@@ -255,6 +256,7 @@ contract AuthIbetWST is IbetWST {
         address buyerSCAccountAddress,
         uint256 STValue,
         uint256 SCValue,
+        string memory memo,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -292,6 +294,7 @@ contract AuthIbetWST is IbetWST {
                 buyerSCAccountAddress,
                 STValue,
                 SCValue,
+                memo,
                 nonce
             )
         );
@@ -325,7 +328,8 @@ contract AuthIbetWST is IbetWST {
             buyerSCAccountAddress: buyerSCAccountAddress,
             STValue: STValue,
             SCValue: SCValue,
-            state: State.Pending
+            state: State.Pending,
+            memo: memo
         });
         // Emit the TradeRequested event
         emit TradeRequested(
