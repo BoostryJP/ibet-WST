@@ -72,6 +72,104 @@ def generate_domain_separator(
     return domain_separator
 
 
+def generate_add_account_whitelist_digest(
+    domain_separator: bytes,
+    account_address: str,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for adding an account to the whitelist.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param account_address: Address of the account to add to the whitelist
+    :param nonce: Nonce for the operation, used to prevent replay attacks
+    :return: EIP-712 digest for the add whitelist operation
+    """
+
+    type_hash = keccak(
+        text="AddAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # account
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(account_address),
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
+def generate_delete_account_whitelist_digest(
+    domain_separator: bytes,
+    account_address: str,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for deleting an account from the whitelist.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param account_address: Address of the account to delete from the whitelist
+    :param nonce: Nonce for the operation, used to prevent replay attacks
+    :return: EIP-712 digest for the delete whitelist operation
+    """
+
+    type_hash = keccak(
+        text="DeleteAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # account
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(account_address),
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
 def generate_transfer_digest(
     domain_separator: bytes,
     _from: str,
