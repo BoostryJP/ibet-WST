@@ -40,7 +40,7 @@ interface AuthIbetWSTErrors {
     error TransactionNotInValidPeriod(uint256 validAfter, uint256 validBefore);
 
     /// @dev Error thrown when the authorization nonce has already been used
-    error AuthorizationNonceAlreadyUsed(address from, bytes32 nonce);
+    error AuthorizationNonceAlreadyUsed(address authorizer, bytes32 nonce);
 
     /// @dev Error thrown when the authorization signature is invalid
     error InvalidAuthorizationSignature(address authorizer);

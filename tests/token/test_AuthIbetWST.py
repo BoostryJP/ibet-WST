@@ -54,6 +54,456 @@ class TestDeploy:
         assert token.DOMAIN_SEPARATOR() == "0x" + domain_separator.hex()
 
 
+class TestAddAccountWhiteListWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate add account whitelist digest
+        digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        tx = token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(issuer_addr, nonce) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+
+        assert token.accountWhiteList(user.address) is True
+        assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user.address
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1_1
+    # - authorization signature is not valid
+    #   - signature is incorrect
+    def test_error_1_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate add account whitelist digest
+        digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # add account to whitelist with authorization (2nd time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.addAccountWhiteListWithAuthorization(
+                relayer.address,  # incorrect account address
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+    # Error_1_2
+    # - authorization signature is not valid
+    #   - signature is signed by other account, not token owner
+    def test_error_1_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        other_pk, other_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate add account whitelist digest
+        digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        # - signature is signed by other account, not token owner
+        signature = brownie.web3.eth.account._sign_hash(digest, other_pk)
+
+        # add account to whitelist with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.addAccountWhiteListWithAuthorization(
+                user.address,
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+    # Error_2
+    # - nonce is already used
+    def test_error_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate add account whitelist digest
+        digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # add account to whitelist with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": relayer},
+        )
+
+        # add account to whitelist with authorization (2nd time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(
+            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce}"
+        ):
+            token.addAccountWhiteListWithAuthorization(
+                user.address,
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+
+class TestDeleteAccountWhiteListWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [ADD-WHITELIST] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [ADD-WHITELIST] generate add account whitelist digest
+        digest_1 = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_1,
+        )
+
+        # [ADD-WHITELIST] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [ADD-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [DELETE-WHITELIST] generate delete account whitelist digest
+        digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_2,
+        )
+
+        # [DELETE-WHITELIST] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [DELETE-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        tx = token.deleteAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(issuer_addr, nonce_2) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == nonce_2.hex()
+
+        assert token.accountWhiteList(user.address) is False
+        assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1_1
+    # - authorization signature is not valid
+    #   - signature is incorrect
+    def test_error_1_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [ADD-WHITELIST] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [ADD-WHITELIST] generate add account whitelist digest
+        digest_1 = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_1,
+        )
+
+        # [ADD-WHITELIST] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [ADD-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [DELETE-WHITELIST] generate delete account whitelist digest
+        digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_2,
+        )
+
+        # [DELETE-WHITELIST] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [DELETE-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.deleteAccountWhiteListWithAuthorization(
+                relayer.address,  # incorrect account address
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+    # Error_1_2
+    # - authorization signature is not valid
+    #   - signature is signed by other account, not token owner
+    def test_error_1_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        other_pk, other_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [ADD-WHITELIST] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [ADD-WHITELIST] generate add account whitelist digest
+        digest_1 = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_1,
+        )
+
+        # [ADD-WHITELIST] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [ADD-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [DELETE-WHITELIST] generate delete account whitelist digest
+        digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_2,
+        )
+
+        # [DELETE-WHITELIST] sign the digest
+        # - signature is signed by other account, not token owner
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
+
+        # [DELETE-WHITELIST] add account to whitelist with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.deleteAccountWhiteListWithAuthorization(
+                user.address,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+    # Error_2
+    # - nonce is already used
+    def test_error_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [ADD-WHITELIST] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [ADD-WHITELIST] generate add account whitelist digest
+        digest_1 = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_1,
+        )
+
+        # [ADD-WHITELIST] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [ADD-WHITELIST] add account to whitelist with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [DELETE-WHITELIST] generate delete account whitelist digest
+        digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            account_address=user.address,
+            nonce=nonce_2,
+        )
+
+        # [DELETE-WHITELIST] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [DELETE-WHITELIST] add account to whitelist with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        token.deleteAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] add account to whitelist with authorization (2nd time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(
+            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce_2}"
+        ):
+            token.deleteAccountWhiteListWithAuthorization(
+                user.address,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+
 class TestTransferWithAuthorization:
     ##########################################################
     # Normal
