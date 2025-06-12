@@ -323,6 +323,12 @@ contract IbetWST is IbetERC20 {
         return true;
     }
 
+    // [FUNCTION]
+    /// @notice Cancel a trade request
+    /// @dev
+    ///   - The trade request must be in the Pending state
+    ///   - The caller must be the seller of the trade request
+    /// @param index The index of the trade request to be cancelled
     function cancelTrade(uint256 index) public returns (bool) {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
@@ -356,6 +362,7 @@ contract IbetWST is IbetERC20 {
     /// @notice Accept a trade request
     /// @dev
     ///   - The trade request must be in the Pending state
+    ///   - The caller must be the buyer of the trade request
     /// @param index The index of the trade request to be accepted
     function acceptTrade(uint256 index) public returns (bool) {
         // Check if the trade request is acceptable

@@ -307,6 +307,7 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
+    // [FUNCTION]
     /// @notice Receive tokens with authorization
     /// @dev Only the recipient can call this function
     /// @param from The address of the sender
@@ -354,6 +355,7 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
+    // [FUNCTION]
     /// @notice Request a trade with authorization
     /// @dev
     ///   - Can be called by anyone
@@ -469,6 +471,7 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
+    // [FUNCTION]
     /// @notice Cancel a trade request with authorization
     /// @dev
     ///   - Can be called by anyone
@@ -541,6 +544,7 @@ contract AuthIbetWST is IbetWST {
         return true;
     }
 
+    // [FUNCTION]
     /// @notice Accept a trade request with authorization
     /// @dev
     ///   - Can be called by anyone
