@@ -48,7 +48,8 @@ contract IbetWST is IbetERC20 {
     // State of the trade request
     enum State {
         Pending,
-        Executed
+        Executed,
+        Cancelled
     }
 
     // Trade request structure
@@ -78,6 +79,28 @@ contract IbetWST is IbetERC20 {
     /// @param STValue The amount of ST tokens to be traded
     /// @param SCValue The amount of SC tokens to be traded
     event TradeRequested(
+        uint256 indexed index,
+        address indexed sellerSTAccountAddress,
+        address indexed buyerSTAccountAddress,
+        address SCTokenAddress,
+        address sellerSCAccountAddress,
+        address buyerSCAccountAddress,
+        uint256 STValue,
+        uint256 SCValue
+    );
+
+    // [EVENT]
+    /// @notice Event emitted when a trade is cancelled
+    /// @dev Triggered when a trade is cancelled
+    /// @param index The index of the trade request
+    /// @param sellerSTAccountAddress The address of the seller's ST account
+    /// @param buyerSTAccountAddress The address of the buyer's ST account
+    /// @param SCTokenAddress The address of the SCToken
+    /// @param sellerSCAccountAddress The address of the seller's SC account
+    /// @param buyerSCAccountAddress The address of the buyer's SC account
+    /// @param STValue The amount of ST tokens to be traded
+    /// @param SCValue The amount of SC tokens to be traded
+    event TradeCancelled(
         uint256 indexed index,
         address indexed sellerSTAccountAddress,
         address indexed buyerSTAccountAddress,
@@ -290,6 +313,35 @@ contract IbetWST is IbetERC20 {
             buyerSCAccountAddress,
             STValue,
             SCValue
+        );
+        return true;
+    }
+
+    function cancelTrade(uint256 index) public returns (bool) {
+        // Check if the trade request is acceptable
+        if (_trades[index].state != State.Pending) {
+            revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
+        }
+        // Check if the caller is the trade request's seller
+        address sellerSTAccountAddress = _msgSender();
+        if (_trades[index].sellerSTAccountAddress != sellerSTAccountAddress) {
+            revert IbetWSTErrors.TradeRequestNotAcceptableByCaller(
+                index,
+                sellerSTAccountAddress
+            );
+        }
+        // Update the state of the trade request to Cancelled
+        _trades[index].state = State.Cancelled;
+        // Emit the TradeCancelled event
+        emit TradeCancelled(
+            index,
+            _trades[index].sellerSTAccountAddress,
+            _trades[index].buyerSTAccountAddress,
+            _trades[index].SCTokenAddress,
+            _trades[index].sellerSCAccountAddress,
+            _trades[index].buyerSCAccountAddress,
+            _trades[index].STValue,
+            _trades[index].SCValue
         );
         return true;
     }
