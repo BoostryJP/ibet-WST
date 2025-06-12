@@ -211,6 +211,7 @@ def generate_request_trade_digest(
     buyer_sc_account_address: str,
     st_value: int,
     sc_value: int,
+    memo: str,
     nonce: bytes,
 ) -> bytes:
     """
@@ -224,12 +225,13 @@ def generate_request_trade_digest(
     :param buyer_sc_account_address: Buyer's SC account address
     :param st_value: Amount of ST to trade
     :param sc_value: Amount of SC to trade
+    :param memo: Optional memo for the trade request
     :param nonce: Nonce for the trade, used to prevent replay attacks
     :return: EIP-712 digest for the trade request
     """
 
     type_hash = keccak(
-        text="RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,bytes32 nonce)"
+        text="RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
     )
 
     struct_hash = keccak(
@@ -243,6 +245,7 @@ def generate_request_trade_digest(
                 "address",  # buyerSCAccountAddress
                 "uint256",  # STValue
                 "uint256",  # SCValue
+                "string",  # memo
                 "bytes32",  # nonce
             ],
             [
@@ -254,6 +257,7 @@ def generate_request_trade_digest(
                 to_checksum_address(buyer_sc_account_address),
                 st_value,
                 sc_value,
+                memo,
                 nonce,
             ],
         )

@@ -815,6 +815,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce,
         )
 
@@ -831,6 +832,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce,
             signature.v,
             signature.r,
@@ -850,6 +852,7 @@ class TestRequestTradeWithAuthorization:
             100,
             200,
             0,  # status (Pending)
+            "trade_memo",
         )
 
         assert tx.events["TradeRequested"]["index"] == 1
@@ -899,6 +902,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce,
         )
 
@@ -916,6 +920,7 @@ class TestRequestTradeWithAuthorization:
                 buyer_sc.address,
                 100,  # st_value
                 200,  # sc_value
+                "trade_memo",
                 nonce,
                 signature.v,
                 signature.r,
@@ -961,6 +966,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce,
         )
 
@@ -978,6 +984,7 @@ class TestRequestTradeWithAuthorization:
                 buyer_sc.address,
                 100,  # st_value
                 200,  # sc_value
+                "trade_memo",
                 nonce,
                 signature.v,
                 signature.r,
@@ -1024,6 +1031,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce,
         )
 
@@ -1039,6 +1047,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce,
             signature.v,
             signature.r,
@@ -1059,6 +1068,7 @@ class TestRequestTradeWithAuthorization:
                 buyer_sc.address,
                 100,  # st_value
                 200,  # sc_value
+                "trade_memo",
                 nonce,
                 signature.v,
                 signature.r,
@@ -1102,6 +1112,7 @@ class TestRequestTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce,
         )
 
@@ -1121,6 +1132,7 @@ class TestRequestTradeWithAuthorization:
                 buyer_sc.address,
                 1000,  # st_value, value is not correct
                 200,  # sc_value
+                "trade_memo",
                 nonce,
                 signature.v,
                 signature.r,
@@ -1170,6 +1182,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1186,6 +1199,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1274,6 +1288,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1290,6 +1305,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1367,6 +1383,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1383,6 +1400,7 @@ class TestCancelTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1464,6 +1482,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1480,6 +1499,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1572,6 +1592,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1588,6 +1609,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1671,6 +1693,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1687,6 +1710,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1761,6 +1785,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=1000,  # value is greater than balance
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1777,6 +1802,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc.address,
             1000,  # st_value, value is greater than balance
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,
@@ -1848,6 +1874,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc_account_address=buyer_sc.address,
             st_value=100,
             sc_value=200,
+            memo="trade_memo",
             nonce=nonce_1,
         )
 
@@ -1864,6 +1891,7 @@ class TestAcceptTradeWithAuthorization:
             buyer_sc.address,
             100,  # st_value
             200,  # sc_value
+            "trade_memo",
             nonce_1,
             signature_1.v,
             signature_1.r,

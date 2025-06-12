@@ -499,6 +499,7 @@ class TestRequestTrade:
             buyer_sc.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -514,6 +515,7 @@ class TestRequestTrade:
             100,
             200,
             0,  # status (Pending)
+            "trade_memo",
         )
 
         assert tx.events["TradeRequested"]["index"] == 1
@@ -557,6 +559,7 @@ class TestRequestTrade:
             buyer_sc.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -568,6 +571,7 @@ class TestRequestTrade:
             buyer_sc.address,
             200,  # ST value
             300,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -583,6 +587,7 @@ class TestRequestTrade:
             100,
             200,
             0,  # status (Pending)
+            "trade_memo",
         )
 
         assert st_token.getTrade(2) == (
@@ -594,6 +599,7 @@ class TestRequestTrade:
             200,
             300,
             0,  # status (Pending)
+            "trade_memo",
         )
 
     ##########################################################
@@ -627,6 +633,7 @@ class TestRequestTrade:
                 buyer_sc.address,
                 100,  # ST value
                 200,  # SC value
+                "trade_memo",
                 {"from": seller_st},
             )
 
@@ -663,6 +670,7 @@ class TestRequestTrade:
                 buyer_sc.address,
                 100,  # ST value
                 200,  # SC value
+                "trade_memo",
                 {"from": seller_st},
             )
 
@@ -697,6 +705,7 @@ class TestCancelTrade:
             buyer_st.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -747,6 +756,7 @@ class TestCancelTrade:
             buyer_st.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -781,6 +791,7 @@ class TestCancelTrade:
             buyer_st.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -827,6 +838,7 @@ class TestAcceptTrade:
             buyer_sc.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -887,6 +899,7 @@ class TestAcceptTrade:
             buyer_sc.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -930,6 +943,7 @@ class TestAcceptTrade:
             buyer_sc.address,
             100,  # ST value
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -972,6 +986,7 @@ class TestAcceptTrade:
             buyer_sc.address,
             101,  # ST value, insufficient
             200,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 
@@ -1014,6 +1029,7 @@ class TestAcceptTrade:
             buyer_sc.address,
             100,  # ST value
             201,  # SC value
+            "trade_memo",
             {"from": seller_st},
         )
 

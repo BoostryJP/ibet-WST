@@ -62,6 +62,7 @@ contract IbetWST is IbetERC20 {
         uint256 STValue; // Amount of ST tokens to be traded
         uint256 SCValue; // Amount of SC tokens to be traded
         State state; // State of the trade request
+        string memo; // Optional memo for the trade request
     }
 
     // Mapping from index to trade requests
@@ -246,7 +247,8 @@ contract IbetWST is IbetERC20 {
             address,
             uint256,
             uint256,
-            State
+            State,
+            string memory
         )
     {
         Trade storage trade = _trades[index];
@@ -258,7 +260,8 @@ contract IbetWST is IbetERC20 {
             trade.buyerSCAccountAddress,
             trade.STValue,
             trade.SCValue,
-            trade.state
+            trade.state,
+            trade.memo
         );
     }
 
@@ -273,13 +276,15 @@ contract IbetWST is IbetERC20 {
     /// @param buyerSCAccountAddress The address of the buyer's SC account
     /// @param STValue The amount of ST tokens to be traded
     /// @param SCValue The amount of SC tokens to be traded
+    /// @param memo Optional memo for the trade request
     function requestTrade(
         address buyerSTAccountAddress,
         address SCTokenAddress,
         address sellerSCAccountAddress,
         address buyerSCAccountAddress,
         uint256 STValue,
-        uint256 SCValue
+        uint256 SCValue,
+        string memory memo
     ) public returns (bool) {
         address sellerSTAccountAddress = _msgSender();
         // Check if the sellerSTAccountAddress is whitelisted
@@ -301,7 +306,8 @@ contract IbetWST is IbetERC20 {
             buyerSCAccountAddress: buyerSCAccountAddress,
             STValue: STValue,
             SCValue: SCValue,
-            state: State.Pending
+            state: State.Pending,
+            memo: memo
         });
         // Emit the TradeRequested event
         emit TradeRequested(
