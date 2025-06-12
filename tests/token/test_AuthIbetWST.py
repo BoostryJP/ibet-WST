@@ -1129,6 +1129,296 @@ class TestRequestTradeWithAuthorization:
             )
 
 
+class TestCancelTradeWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        relayer = users["eoa5"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token.mint(seller_st_addr, 100, {"from": issuer})
+
+        # deploy SC token
+        sc_token = admin.deploy(IbetERC20, issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
+
+        # [REQUEST-TRADE] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [REQUEST-TRADE] generate request trade digest
+        digest_1 = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            seller_sc_account_address=seller_sc.address,
+            buyer_sc_account_address=buyer_sc.address,
+            st_value=100,
+            sc_value=200,
+            nonce=nonce_1,
+        )
+
+        # [REQUEST-TRADE] sign the digest by seller_st_addr
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,  # st_value
+            200,  # sc_value
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [CANCEL-TRADE] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [CANCEL-TRADE] generate request trade digest
+        index = st_token.getNbTrades()
+        digest_2 = eip712_helper.generate_cancel_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(), index=index, nonce=nonce_2
+        )
+
+        # [CANCEL-TRADE] sign the digest by buyer_st_addr
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+
+        # [CANCEL-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        tx = st_token.cancelTradeWithAuthorization(
+            index,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert st_token.getTrade(1)[7] == 2  # status (Canceled)
+
+        assert st_token.balanceOf(seller_st_addr) == 100
+        assert st_token.balanceOf(buyer_st_addr) == 0
+
+        assert tx.events["TradeCancelled"]["index"] == 1
+        assert tx.events["TradeCancelled"]["sellerSTAccountAddress"] == seller_st_addr
+        assert tx.events["TradeCancelled"]["buyerSTAccountAddress"] == buyer_st_addr
+        assert tx.events["TradeCancelled"]["SCTokenAddress"] == sc_token.address
+        assert (
+            tx.events["TradeCancelled"]["sellerSCAccountAddress"] == seller_sc.address
+        )
+        assert tx.events["TradeCancelled"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert tx.events["TradeCancelled"]["STValue"] == 100
+        assert tx.events["TradeCancelled"]["SCValue"] == 200
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1
+    # - The trade is not cancellable
+    def test_error_1(self, AuthIbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        relayer = users["eoa5"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token.mint(seller_st_addr, 100, {"from": issuer})
+
+        # deploy SC token
+        sc_token = admin.deploy(IbetERC20, issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
+
+        # [REQUEST-TRADE] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [REQUEST-TRADE] generate request trade digest
+        digest_1 = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            seller_sc_account_address=seller_sc.address,
+            buyer_sc_account_address=buyer_sc.address,
+            st_value=100,
+            sc_value=200,
+            nonce=nonce_1,
+        )
+
+        # [REQUEST-TRADE] sign the digest by seller_st_addr
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,  # st_value
+            200,  # sc_value
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [CANCEL-TRADE] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [CANCEL-TRADE] generate request trade digest
+        index = st_token.getNbTrades()
+        digest_2 = eip712_helper.generate_cancel_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(), index=index, nonce=nonce_2
+        )
+
+        # [CANCEL-TRADE] sign the digest by buyer_st_addr
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+
+        # [CANCEL-TRADE] request trade with authorization (1st time)
+        # - transaction is sent not by seller_st_addr but by relayer
+        st_token.cancelTradeWithAuthorization(
+            index,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # [CANCEL-TRADE] request trade with authorization (2nd time)
+        with brownie.reverts(f"TradeRequestIsNotAcceptable: {index}"):
+            st_token.cancelTradeWithAuthorization(
+                index,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+    # Error_2
+    def test_error_2(self, AuthIbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        relayer = users["eoa5"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token.mint(seller_st_addr, 100, {"from": issuer})
+
+        # deploy SC token
+        sc_token = admin.deploy(IbetERC20, issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
+
+        # [REQUEST-TRADE] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [REQUEST-TRADE] generate request trade digest
+        digest_1 = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            seller_sc_account_address=seller_sc.address,
+            buyer_sc_account_address=buyer_sc.address,
+            st_value=100,
+            sc_value=200,
+            nonce=nonce_1,
+        )
+
+        # [REQUEST-TRADE] sign the digest by seller_st_addr
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            seller_sc.address,
+            buyer_sc.address,
+            100,  # st_value
+            200,  # sc_value
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [CANCEL-TRADE] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [CANCEL-TRADE] generate request trade digest
+        index = st_token.getNbTrades()
+        digest_2 = eip712_helper.generate_cancel_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            index=index + 1,  # index is not correct
+            nonce=nonce_2,
+        )
+
+        # [CANCEL-TRADE] sign the digest by buyer_st_addr
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+
+        # [CANCEL-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        with brownie.reverts(
+            f"InvalidAuthorizationSignature: {seller_st_addr.lower()}"
+        ):
+            st_token.cancelTradeWithAuthorization(
+                index,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+
 class TestAcceptTradeWithAuthorization:
     ##########################################################
     # Normal
