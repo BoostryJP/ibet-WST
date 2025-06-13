@@ -4,8 +4,8 @@
 
 ibet-WST (ibet Worldwide Settlement Token) is a protocol that bridges security tokens (digital securities) on the ibet for Fin consortium blockchain to the Ethereum network, enabling global DvP (Delivery versus Payment) settlement on public blockchains.
 
-- [IbetWST](contracts/IbetWST.sol): The main contract for ibet-WST. It is implemented as an extension of the ERC20 token standard, providing whitelist management for holders and DvP settlement functionality.
-- [AuthIbetWST](contracts/AuthIbetWST.sol): An extension of the IbetWST contract that adds authentication using EIP-712 signatures. This enables gasless transactions for various ibet-WST functions.
+- [IbetWST](contracts/token/IbetWST.sol): The main contract for ibet-WST. It is implemented as an extension of the ERC20 token standard, providing whitelist management for holders and DvP settlement functionality.
+- [AuthIbetWST](contracts/token/AuthIbetWST.sol): An extension of the IbetWST contract that adds authentication using EIP-712 signatures. This enables gasless transactions for various ibet-WST functions.
 
 ![img.png](img.png)
 
