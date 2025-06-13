@@ -31,7 +31,7 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # assertion
         assert token.owner() == issuer.address
@@ -54,7 +54,7 @@ class TestMint:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         tx = token.mint(issuer.address, 10, {"from": issuer})
@@ -81,7 +81,7 @@ class TestMint:
         other = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         with brownie.reverts(
@@ -103,7 +103,7 @@ class TestBurn:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         token.mint(user_1.address, 10, {"from": issuer})
@@ -133,7 +133,7 @@ class TestBurn:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         token.mint(user_1.address, 10, {"from": issuer})
@@ -159,7 +159,7 @@ class TestBurnFrom:
         user_2 = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         token.mint(user_1.address, 10, {"from": issuer})
@@ -193,7 +193,7 @@ class TestBurnFrom:
         user_2 = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetERC20, issuer.address)
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # mint
         token.mint(user_1.address, 10, {"from": issuer})

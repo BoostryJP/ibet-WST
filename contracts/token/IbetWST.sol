@@ -136,7 +136,10 @@ contract IbetWST is IbetERC20 {
 
     // [CONSTRUCTOR]
     /// @param initialOwner The address of the initial owner
-    constructor(address initialOwner) IbetERC20(initialOwner) {}
+    constructor(
+        string memory name,
+        address initialOwner
+    ) IbetERC20(name, initialOwner) {}
 
     // [FUNCTION]
     /// @notice Register an account to the whitelist
