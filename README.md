@@ -9,44 +9,33 @@ ibet-WST (ibet Worldwide Settlement Token) is a protocol that bridges security t
 
 ![img.png](img.png)
 
-## Install
+## Install & Setup
 
 Install 3rd-party package modules:
 ```
 $ make install
 ```
 
-Install OpenZeppelin contracts:
+Setup the development environment:
 ```
-$ brownie pm install OpenZeppelin/openzeppelin-contracts@5.3.0
-```
-
-Install Hardhat as a Node.js package:
-```
-$ npm install
+$ make setup
 ```
 
 ## Developing Smart Contracts
 
-### Brownie settings
-
-Import network settings into Brownie:
-```
-$ brownie networks import conf/networks.yml
-```
 
 ### Compile Contracts
-Use eth-brownie to compile contracts.
 
+You can compile the smart contracts by running the following command:
 ```
-$ brownie compile
+$ make compile
 ```
 
 ### Running the tests
 
 You can run the tests with:
 ```
-$ brownie test
+$ make test
 ```
 
 Alternatively, you can use pytest and run it as follows.

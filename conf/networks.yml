@@ -1,10 +1,3 @@
-live:
-- name: ibet
-  networks:
-  - id: local_network
-    name: Local Network
-    chainid: 2025
-    host: http://localhost:8545
 development:
 - id: test_network
   name: Hardhat Network
