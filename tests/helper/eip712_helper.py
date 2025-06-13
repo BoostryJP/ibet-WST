@@ -72,6 +72,112 @@ def generate_domain_separator(
     return domain_separator
 
 
+def generate_mint_digest(
+    domain_separator: bytes,
+    to_address: str,
+    amount: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for minting tokens with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param to_address: Address to mint tokens to
+    :param amount: Amount of tokens to mint
+    :param nonce: Nonce for the operation, used to prevent replay attacks
+    :return: EIP-712 digest for the mint operation
+    """
+
+    type_hash = keccak(
+        text="MintWithAuthorization(address to,uint256 amount,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # to
+                "uint256",  # amount
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(to_address),
+                amount,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
+def generate_burn_digest(
+    domain_separator: bytes,
+    from_address: str,
+    amount: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for burning tokens with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param from_address: Address to burn tokens from
+    :param amount: Amount of tokens to burn
+    :param nonce: Nonce for the operation, used to prevent replay attacks
+    :return: EIP-712 digest for the burn operation
+    """
+
+    type_hash = keccak(
+        text="BurnWithAuthorization(address from,uint256 amount,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # from
+                "uint256",  # amount
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(from_address),
+                amount,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
 def generate_add_account_whitelist_digest(
     domain_separator: bytes,
     account_address: str,

@@ -54,6 +54,486 @@ class TestDeploy:
         assert token.DOMAIN_SEPARATOR() == "0x" + domain_separator.hex()
 
 
+class TestMintWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate mint digest
+        digest = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        tx = token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(issuer_addr, nonce) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+
+        assert token.balanceOf(user.address) == 100
+
+        assert tx.events["Mint"]["to"] == user.address
+        assert tx.events["Mint"]["amount"] == 100
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1_1
+    # - authorization signature is not valid
+    #   - signature is incorrect
+    def test_error_1_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate mint digest
+        digest = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.mintWithAuthorization(
+                relayer.address,  # incorrect account address
+                100,
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+    # Error_1_2
+    # - authorization signature is not valid
+    #   - signature is signed by other account, not token owner
+    def test_error_1_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        other_pk, other_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate mint digest
+        digest = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        # - signature is signed by other account, not token owner
+        signature = brownie.web3.eth.account._sign_hash(digest, other_pk)
+
+        # mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.mintWithAuthorization(
+                user.address,
+                100,
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+    # Error_2
+    # - nonce is already used
+    def test_error_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # generate nonce
+        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # generate mint digest
+        digest = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce,
+        )
+
+        # sign the digest
+        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+
+        # mint with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": relayer},
+        )
+
+        # mint with authorization (2nd time)
+        # - transaction is sent not by issuer but by relayer
+        with brownie.reverts(
+            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce}"
+        ):
+            token.mintWithAuthorization(
+                user.address,
+                100,
+                nonce,
+                signature.v,
+                signature.r,
+                signature.s,
+                {"from": relayer},
+            )
+
+
+class TestBurnWithAuthorization:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    def test_normal_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [MINT] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [MINT] generate mint digest
+        digest_1 = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce_1,
+        )
+
+        # [MINT] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [MINT] mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [BURN] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [BURN] generate burn digest
+        digest_2 = eip712_helper.generate_burn_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            from_address=user.address,
+            amount=100,
+            nonce=nonce_2,
+        )
+
+        # [BURN] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [BURN] burn with authorization
+        # - transaction is sent not by user but by relayer
+        tx = token.burnWithAuthorization(
+            user.address,
+            100,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(issuer_addr, nonce_2) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == nonce_2.hex()
+
+        assert token.balanceOf(user.address) == 0
+
+        assert tx.events["Burn"]["from"] == user.address
+        assert tx.events["Burn"]["amount"] == 100
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1_1
+    # - authorization signature is not valid
+    #   - signature is incorrect
+    def test_error_1_1(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [MINT] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [MINT] generate mint digest
+        digest_1 = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce_1,
+        )
+
+        # [MINT] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [MINT] mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [BURN] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [BURN] generate burn digest
+        digest_2 = eip712_helper.generate_burn_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            from_address=user.address,
+            amount=100,
+            nonce=nonce_2,
+        )
+
+        # [BURN] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [BURN] burn with authorization
+        # - transaction is sent not by user but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.burnWithAuthorization(
+                relayer.address,  # incorrect account address
+                100,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+    # Error_1_2
+    # - authorization signature is not valid
+    #   - signature is signed by other account, not token owner
+    def test_error_1_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        other_pk, other_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [MINT] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [MINT] generate mint digest
+        digest_1 = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce_1,
+        )
+
+        # [MINT] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [MINT] mint with authorization
+        # - transaction is sent not by issuer but by relayer
+        token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [BURN] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [BURN] generate burn digest
+        digest_2 = eip712_helper.generate_burn_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            from_address=user.address,
+            amount=100,
+            nonce=nonce_2,
+        )
+
+        # [BURN] sign the digest
+        # - signature is signed by other account, not token owner
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
+
+        # [BURN] burn with authorization
+        # - transaction is sent not by user but by relayer
+        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+            token.burnWithAuthorization(
+                user.address,
+                100,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+    # Error_2
+    # - nonce is already used
+    def test_error_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer_pk, issuer_addr = eip712_helper.generate_account()
+        user = users["eoa2"]
+        relayer = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, issuer_addr)
+
+        # [MINT] generate nonce
+        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [MINT] generate mint digest
+        digest_1 = eip712_helper.generate_mint_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            to_address=user.address,
+            amount=100,
+            nonce=nonce_1,
+        )
+
+        # [MINT] sign the digest
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+
+        # [MINT] mint with authorization (1st time)
+        # - transaction is sent not by issuer but by relayer
+        token.mintWithAuthorization(
+            user.address,
+            100,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [BURN] generate nonce
+        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+
+        # [BURN] generate burn digest
+        digest_2 = eip712_helper.generate_burn_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            from_address=user.address,
+            amount=100,
+            nonce=nonce_2,
+        )
+
+        # [BURN] sign the digest
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+
+        # [BURN] burn with authorization (1st time)
+        # - transaction is sent not by user but by relayer
+        token.burnWithAuthorization(
+            user.address,
+            100,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # [BURN] burn with authorization (2nd time)
+        # - transaction is sent not by user but by relayer
+        with brownie.reverts(
+            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce_2}"
+        ):
+            token.burnWithAuthorization(
+                user.address,
+                100,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+
 class TestAddAccountWhiteListWithAuthorization:
     ##########################################################
     # Normal
@@ -130,7 +610,7 @@ class TestAddAccountWhiteListWithAuthorization:
         # sign the digest
         signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
 
-        # add account to whitelist with authorization (2nd time)
+        # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
             token.addAccountWhiteListWithAuthorization(
@@ -169,7 +649,7 @@ class TestAddAccountWhiteListWithAuthorization:
         # - signature is signed by other account, not token owner
         signature = brownie.web3.eth.account._sign_hash(digest, other_pk)
 
-        # add account to whitelist with authorization (1st time)
+        # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
             token.addAccountWhiteListWithAuthorization(
@@ -418,7 +898,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # - signature is signed by other account, not token owner
         signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
 
-        # [DELETE-WHITELIST] add account to whitelist with authorization (1st time)
+        # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
             token.deleteAccountWhiteListWithAuthorization(
