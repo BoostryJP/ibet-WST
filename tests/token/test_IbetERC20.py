@@ -57,7 +57,7 @@ class TestMint:
         token = admin.deploy(IbetERC20, issuer.address)
 
         # mint
-        token.mint(issuer.address, 10, {"from": issuer})
+        tx = token.mint(issuer.address, 10, {"from": issuer})
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -65,6 +65,9 @@ class TestMint:
         assert token.decimals() == 18
         assert token.totalSupply() == 10
         assert token.balanceOf(issuer.address) == 10
+
+        assert tx.events["Mint"]["to"] == issuer.address
+        assert tx.events["Mint"]["amount"] == 10
 
     ##########################################################
     # Error
@@ -106,7 +109,7 @@ class TestBurn:
         token.mint(user_1.address, 10, {"from": issuer})
 
         # burn
-        token.burn(10, {"from": user_1})
+        tx = token.burn(10, {"from": user_1})
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -114,6 +117,9 @@ class TestBurn:
         assert token.decimals() == 18
         assert token.totalSupply() == 0
         assert token.balanceOf(user_1.address) == 0
+
+        assert tx.events["Burn"]["from"] == user_1.address
+        assert tx.events["Burn"]["amount"] == 10
 
     ##########################################################
     # Error
@@ -162,7 +168,7 @@ class TestBurnFrom:
         token.approve(user_2.address, 5, {"from": user_1})
 
         # burnFrom
-        token.burnFrom(user_1.address, 5, {"from": user_2})
+        tx = token.burnFrom(user_1.address, 5, {"from": user_2})
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -170,6 +176,9 @@ class TestBurnFrom:
         assert token.decimals() == 18
         assert token.totalSupply() == 5
         assert token.balanceOf(user_1.address) == 5
+
+        assert tx.events["Burn"]["from"] == user_1.address
+        assert tx.events["Burn"]["amount"] == 5
 
     ##########################################################
     # Error
