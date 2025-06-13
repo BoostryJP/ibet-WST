@@ -27,6 +27,16 @@ contract AuthIbetWST is IbetWST {
     // Constant for EIP-712 Domain
     bytes32 public DOMAIN_SEPARATOR;
 
+    bytes32 public constant MINT_WITH_AUTHORIZATION_TYPEHASH =
+        keccak256(
+            "MintWithAuthorization(address to,uint256 amount,bytes32 nonce)"
+        );
+
+    bytes32 public constant BURN_WITH_AUTHORIZATION_TYPEHASH =
+        keccak256(
+            "BurnWithAuthorization(address from,uint256 amount,bytes32 nonce)"
+        );
+
     bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
             "AddAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
@@ -94,6 +104,110 @@ contract AuthIbetWST is IbetWST {
     }
 
     // [FUNCTION]
+    /// @notice Mint tokens with authorization
+    /// @dev
+    ///   - Can be called by anyone
+    ///   - Token owner must sign the authorization
+    /// @param to The address to mint tokens to
+    /// @param amount The amount of tokens to mint
+    /// @param nonce The authorization nonce for the transaction
+    /// @param v v value of the signature
+    /// @param r r value of the signature
+    /// @param s s value of the signature
+    function mintWithAuthorization(
+        address to,
+        uint256 amount,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (bool) {
+        // Calculate the structHash for the EIP-712 message
+        bytes32 structHash = keccak256(
+            abi.encode(MINT_WITH_AUTHORIZATION_TYPEHASH, to, amount, nonce)
+        );
+        // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+        // Verify the signature
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
+            // Throw an error if the signature does not match the token owner's address
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
+        }
+
+        // Ensure the nonce has not been used
+        if (usedNonces[recoveredAddress][nonce]) {
+            // Throw an error if the nonce has already been used
+            revert AuthIbetWSTErrors.AuthorizationNonceAlreadyUsed(
+                recoveredAddress,
+                nonce
+            );
+        }
+        // Mark the nonce as used and emit an event
+        usedNonces[recoveredAddress][nonce] = true;
+        emit AuthorizationUsed(recoveredAddress, nonce);
+        // Mint the tokens to the specified address
+        _mint(to, amount);
+        emit Mint(to, amount);
+
+        return true;
+    }
+
+    // [FUNCTION]
+    /// @notice Burn tokens with authorization
+    /// @dev
+    ///   - Can be called by anyone
+    ///   - Token owner must sign the authorization
+    /// @param from The address from which to burn tokens
+    /// @param amount The amount of tokens to burn
+    /// @param nonce The authorization nonce for the transaction
+    /// @param v v value of the signature
+    /// @param r r value of the signature
+    /// @param s s value of the signature
+    function burnWithAuthorization(
+        address from,
+        uint256 amount,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (bool) {
+        // Calculate the structHash for the EIP-712 message
+        bytes32 structHash = keccak256(
+            abi.encode(BURN_WITH_AUTHORIZATION_TYPEHASH, from, amount, nonce)
+        );
+        // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+        // Verify the signature
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
+            // Throw an error if the signature does not match the token owner's address
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
+        }
+
+        // Ensure the nonce has not been used
+        if (usedNonces[recoveredAddress][nonce]) {
+            // Throw an error if the nonce has already been used
+            revert AuthIbetWSTErrors.AuthorizationNonceAlreadyUsed(
+                recoveredAddress,
+                nonce
+            );
+        }
+        // Mark the nonce as used and emit an event
+        usedNonces[recoveredAddress][nonce] = true;
+        emit AuthorizationUsed(recoveredAddress, nonce);
+        // Burn the tokens from the specified address
+        _burn(from, amount);
+        emit Burn(from, amount);
+
+        return true;
+    }
+
+    // [FUNCTION]
     /// @notice Add an account to the whitelist with authorization
     /// @dev
     ///   - Can be called by anyone
@@ -125,7 +239,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -181,7 +295,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -434,7 +548,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != sellerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the seller's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 sellerSTAccountAddress
             );
@@ -518,7 +632,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != sellerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the seller's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 sellerSTAccountAddress
             );
@@ -591,7 +705,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != buyerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the buyer's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 buyerSTAccountAddress
             );

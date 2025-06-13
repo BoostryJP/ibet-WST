@@ -19,15 +19,45 @@
 pragma solidity ^0.8.0;
 
 import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/access/Ownable.sol";
 
-contract IbetERC20 is ERC20, ERC20Burnable, Ownable {
+contract IbetERC20 is ERC20, Ownable {
     constructor(
         address initialOwner
     ) ERC20("IbetERC20", "") Ownable(initialOwner) {}
 
+    // [EVENT]
+    /// @notice Emitted when tokens are minted
+    event Mint(address indexed to, uint256 amount);
+
+    // [EVENT]
+    /// @notice Emitted when tokens are burned
+    event Burn(address indexed from, uint256 amount);
+
+    // [FUNCTION]
+    /// @notice Mint tokens to a specified address
+    /// @param to The address to mint tokens to
+    /// @param amount The amount of tokens to mint
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
+        emit Mint(to, amount);
+    }
+
+    // [FUNCTION]
+    /// @notice Burn tokens from the caller's account
+    /// @param value The amount of tokens to burn
+    function burn(uint256 value) public virtual {
+        _burn(_msgSender(), value);
+        emit Burn(_msgSender(), value);
+    }
+
+    // [FUNCTION]
+    /// @notice Burn tokens from a specified account
+    /// @param account The address from which to burn tokens
+    /// @param value The amount of tokens to burn
+    function burnFrom(address account, uint256 value) public virtual {
+        _spendAllowance(account, _msgSender(), value);
+        _burn(account, value);
+        emit Burn(account, value);
     }
 }
