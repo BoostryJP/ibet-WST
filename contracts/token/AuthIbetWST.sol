@@ -133,7 +133,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -185,7 +185,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -239,7 +239,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -295,7 +295,7 @@ contract AuthIbetWST is IbetWST {
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
         if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the token owner's address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
         }
 
@@ -548,7 +548,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != sellerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the seller's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 sellerSTAccountAddress
             );
@@ -632,7 +632,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != sellerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the seller's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 sellerSTAccountAddress
             );
@@ -705,7 +705,7 @@ contract AuthIbetWST is IbetWST {
             recoveredAddress != buyerSTAccountAddress ||
             recoveredAddress == address(0)
         ) {
-            // Throw an error if the signature does not match the sender's address
+            // Throw an error if the signature does not match the buyer's ST account address
             revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
                 buyerSTAccountAddress
             );
