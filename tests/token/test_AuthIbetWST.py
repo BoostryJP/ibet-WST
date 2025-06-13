@@ -35,11 +35,11 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # assertion
         assert token.owner() == issuer.address
-        assert token.name() == "IbetERC20"
+        assert token.name() == "AuthIbetWST"
         assert token.symbol() == ""
         assert token.decimals() == 18
         assert token.totalSupply() == 0
@@ -67,7 +67,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -119,7 +119,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -159,7 +159,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -198,7 +198,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -255,7 +255,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -333,7 +333,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -399,7 +399,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -464,7 +464,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -547,7 +547,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -595,7 +595,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -633,7 +633,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -670,7 +670,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -724,7 +724,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -796,7 +796,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -858,7 +858,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -919,7 +919,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer_addr)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
@@ -1001,7 +1001,7 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1068,7 +1068,7 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1  # max uint32
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1127,7 +1127,7 @@ class TestTransferWithAuthorization:
         _valid_before = 10
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1186,7 +1186,7 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1254,7 +1254,7 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1307,7 +1307,7 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1365,7 +1365,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1431,7 +1431,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1  # max uint32
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1489,7 +1489,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 10
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1547,7 +1547,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1613,7 +1613,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1665,7 +1665,7 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, issuer.address)
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # mint tokens to from_user
         token.mint(from_user_addr, 1000, {"from": issuer})
@@ -1723,10 +1723,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -1814,10 +1814,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # generate nonce
         nonce = brownie.web3.keccak(secrets.token_bytes(32))
@@ -1875,10 +1875,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -1939,10 +1939,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -2020,10 +2020,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -2089,11 +2089,11 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -2195,11 +2195,11 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -2290,11 +2290,11 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
@@ -2385,11 +2385,11 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # add ST accounts to whitelist
@@ -2495,11 +2495,11 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # add ST accounts to whitelist
@@ -2596,11 +2596,11 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # add ST accounts to whitelist
@@ -2688,11 +2688,11 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # add ST accounts to whitelist
@@ -2780,11 +2780,11 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, issuer.address)
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
         st_token.mint(seller_st_addr, 100, {"from": issuer})
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # add ST accounts to whitelist

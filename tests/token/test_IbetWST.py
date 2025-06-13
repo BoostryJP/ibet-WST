@@ -31,11 +31,11 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # assertion
         assert token.owner() == issuer.address
-        assert token.name() == "IbetERC20"
+        assert token.name() == "IbetWST"
         assert token.symbol() == ""
         assert token.decimals() == 18
         assert token.totalSupply() == 0
@@ -55,7 +55,7 @@ class TestAddAccountWhiteList:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add account to whitelist
         tx = token.addAccountWhiteList(user_1.address, {"from": issuer})
@@ -77,7 +77,7 @@ class TestAddAccountWhiteList:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add account to whitelist by non-owner
         with brownie.reverts(f"OwnableUnauthorizedAccount: {user_1.address.lower()}"):
@@ -97,7 +97,7 @@ class TestDeleteAccountWhiteList:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add account to whitelist
         token.addAccountWhiteList(user_1.address, {"from": issuer})
@@ -119,7 +119,7 @@ class TestDeleteAccountWhiteList:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # initially, account is not in the whitelist
         assert token.accountWhiteList(user_1.address) is False
@@ -145,7 +145,7 @@ class TestDeleteAccountWhiteList:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add account to whitelist
         token.addAccountWhiteList(user_1.address, {"from": issuer})
@@ -169,7 +169,7 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -202,7 +202,7 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -226,7 +226,7 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -253,7 +253,7 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -281,7 +281,7 @@ class TestTransfer:
         transfer_to = brownie.ZERO_ADDRESS
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -313,7 +313,7 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -351,7 +351,7 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -380,7 +380,7 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -412,7 +412,7 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -445,7 +445,7 @@ class TestTransferFrom:
         transfer_to = brownie.ZERO_ADDRESS
 
         # deploy
-        token = admin.deploy(IbetWST, issuer.address)
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # mint
         token.mint(transfer_from.address, 100, {"from": issuer})
@@ -482,10 +482,10 @@ class TestRequestTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -542,10 +542,10 @@ class TestRequestTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -617,10 +617,10 @@ class TestRequestTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # requestTrade
         with brownie.reverts(
@@ -651,10 +651,10 @@ class TestRequestTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # add ST account to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -691,7 +691,7 @@ class TestCancelTrade:
         buyer_st = users["eoa4"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -742,7 +742,7 @@ class TestCancelTrade:
         buyer_st = users["eoa4"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -777,7 +777,7 @@ class TestCancelTrade:
         buyer_st = users["eoa4"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
@@ -819,11 +819,11 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
         st_token.mint(seller_st.address, 100, {"from": issuer})
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # ST: add ST accounts to whitelist
@@ -880,11 +880,11 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
         st_token.mint(seller_st.address, 100, {"from": issuer})
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # ST: add ST accounts to whitelist
@@ -924,11 +924,11 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
         st_token.mint(seller_st.address, 100, {"from": issuer})
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # ST: add ST accounts to whitelist
@@ -967,11 +967,11 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
         st_token.mint(seller_st.address, 100, {"from": issuer})
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # ST: add ST accounts to whitelist
@@ -1010,11 +1010,11 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, issuer.address)
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
         st_token.mint(seller_st.address, 100, {"from": issuer})
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, issuer.address)
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
         sc_token.mint(buyer_sc.address, 200, {"from": issuer})
 
         # ST: add ST accounts to whitelist

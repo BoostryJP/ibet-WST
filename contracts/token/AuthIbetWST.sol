@@ -79,7 +79,10 @@ contract AuthIbetWST is IbetWST {
 
     // [CONSTRUCTOR]
     /// @param initialOwner The address of the initial owner
-    constructor(address initialOwner) IbetWST(initialOwner) {
+    constructor(
+        string memory name,
+        address initialOwner
+    ) IbetWST(name, initialOwner) {
         // Construct the EIP-712 Domain Separator
         uint256 chainID;
         assembly {
@@ -92,7 +95,7 @@ contract AuthIbetWST is IbetWST {
                     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
                 ),
                 // Token name
-                keccak256(bytes(name())),
+                keccak256(bytes(name)),
                 // Version
                 keccak256(bytes("1")),
                 // Chain ID

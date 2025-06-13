@@ -23,8 +23,9 @@ import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/access/Ownable.sol";
 
 contract IbetERC20 is ERC20, Ownable {
     constructor(
+        string memory name,
         address initialOwner
-    ) ERC20("IbetERC20", "") Ownable(initialOwner) {}
+    ) ERC20(name, "") Ownable(initialOwner) {}
 
     // [EVENT]
     /// @notice Emitted when tokens are minted
