@@ -1,9 +1,14 @@
-.PHONY: install update format compile test
+.PHONY: install setup update format lint compile test
 
 install:
 	uv sync --frozen --no-install-project
 	uv run pre-commit install
 	npm install
+
+setup:
+	brownie pm delete OpenZeppelin/openzeppelin-contracts@5.3.0
+	brownie pm install OpenZeppelin/openzeppelin-contracts@5.3.0
+	brownie networks import conf/networks.yml true
 
 update:
 	uv lock --upgrade
