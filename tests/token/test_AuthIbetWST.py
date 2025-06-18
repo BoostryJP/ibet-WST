@@ -70,7 +70,7 @@ class TestMintWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate mint digest
         digest = eip712_helper.generate_mint_digest(
@@ -122,7 +122,7 @@ class TestMintWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate mint digest
         digest = eip712_helper.generate_mint_digest(
@@ -162,7 +162,7 @@ class TestMintWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate mint digest
         digest = eip712_helper.generate_mint_digest(
@@ -201,7 +201,7 @@ class TestMintWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate mint digest
         digest = eip712_helper.generate_mint_digest(
@@ -258,7 +258,7 @@ class TestBurnWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
@@ -284,7 +284,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
@@ -336,7 +336,7 @@ class TestBurnWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
@@ -362,7 +362,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
@@ -402,7 +402,7 @@ class TestBurnWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
@@ -428,7 +428,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
@@ -467,7 +467,7 @@ class TestBurnWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [MINT] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
@@ -493,7 +493,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
@@ -550,7 +550,7 @@ class TestAddAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate add account whitelist digest
         digest = eip712_helper.generate_add_account_whitelist_digest(
@@ -598,7 +598,7 @@ class TestAddAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate add account whitelist digest
         digest = eip712_helper.generate_add_account_whitelist_digest(
@@ -636,7 +636,7 @@ class TestAddAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate add account whitelist digest
         digest = eip712_helper.generate_add_account_whitelist_digest(
@@ -673,7 +673,7 @@ class TestAddAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate add account whitelist digest
         digest = eip712_helper.generate_add_account_whitelist_digest(
@@ -727,7 +727,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [ADD-WHITELIST] generate add account whitelist digest
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
@@ -751,7 +751,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [DELETE-WHITELIST] generate delete account whitelist digest
         digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
@@ -799,7 +799,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [ADD-WHITELIST] generate add account whitelist digest
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
@@ -823,7 +823,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [DELETE-WHITELIST] generate delete account whitelist digest
         digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
@@ -861,7 +861,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [ADD-WHITELIST] generate add account whitelist digest
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
@@ -885,7 +885,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [DELETE-WHITELIST] generate delete account whitelist digest
         digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
@@ -922,7 +922,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
 
         # [ADD-WHITELIST] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [ADD-WHITELIST] generate add account whitelist digest
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
@@ -946,7 +946,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [DELETE-WHITELIST] generate delete account whitelist digest
         digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
@@ -1007,7 +1007,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1074,7 +1074,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1133,7 +1133,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1192,7 +1192,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1260,7 +1260,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1313,7 +1313,7 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_transfer_digest(
@@ -1371,7 +1371,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1437,7 +1437,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1495,7 +1495,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1553,7 +1553,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1619,7 +1619,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1671,7 +1671,7 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate transfer digest
         digest = eip712_helper.generate_receive_digest(
@@ -1733,7 +1733,7 @@ class TestRequestTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate request trade digest
         digest = eip712_helper.generate_request_trade_digest(
@@ -1820,7 +1820,7 @@ class TestRequestTradeWithAuthorization:
         sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate request trade digest
         digest = eip712_helper.generate_request_trade_digest(
@@ -1884,7 +1884,7 @@ class TestRequestTradeWithAuthorization:
         st_token.addAccountWhiteList(seller_st_addr, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate request trade digest
         digest = eip712_helper.generate_request_trade_digest(
@@ -1949,7 +1949,7 @@ class TestRequestTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate request trade digest
         digest = eip712_helper.generate_request_trade_digest(
@@ -2030,7 +2030,7 @@ class TestRequestTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # generate nonce
-        nonce = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce = brownie.web3.secrets.token_bytes(32)
 
         # generate request trade digest
         digest = eip712_helper.generate_request_trade_digest(
@@ -2100,7 +2100,7 @@ class TestCancelTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2138,7 +2138,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [CANCEL-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2206,7 +2206,7 @@ class TestCancelTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2244,7 +2244,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [CANCEL-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2301,7 +2301,7 @@ class TestCancelTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2339,7 +2339,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [CANCEL-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2400,7 +2400,7 @@ class TestAcceptTradeWithAuthorization:
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2438,7 +2438,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [ACCEPT-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2510,7 +2510,7 @@ class TestAcceptTradeWithAuthorization:
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2548,7 +2548,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [ACCEPT-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2611,7 +2611,7 @@ class TestAcceptTradeWithAuthorization:
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2649,7 +2649,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [ACCEPT-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2703,7 +2703,7 @@ class TestAcceptTradeWithAuthorization:
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2741,7 +2741,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [ACCEPT-TRADE] generate request trade digest
         index = st_token.getNbTrades()
@@ -2792,7 +2792,7 @@ class TestAcceptTradeWithAuthorization:
         st_token.addAccountWhiteList(buyer_st_addr, {"from": issuer})
 
         # [REQUEST-TRADE] generate nonce
-        nonce_1 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_1 = brownie.web3.secrets.token_bytes(32)
 
         # [REQUEST-TRADE] generate request trade digest
         digest_1 = eip712_helper.generate_request_trade_digest(
@@ -2830,7 +2830,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] generate nonce
-        nonce_2 = brownie.web3.keccak(secrets.token_bytes(32))
+        nonce_2 = brownie.web3.secrets.token_bytes(32)
 
         # [ACCEPT-TRADE] generate request trade digest
         index = st_token.getNbTrades()
