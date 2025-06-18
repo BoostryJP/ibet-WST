@@ -98,7 +98,7 @@ class TestMintWithAuthorization:
         # assertion
         assert token.usedNonces(issuer_addr, nonce) is True
         assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
 
         assert token.balanceOf(user.address) == 100
 
@@ -312,7 +312,7 @@ class TestBurnWithAuthorization:
         # assertion
         assert token.usedNonces(issuer_addr, nonce_2) is True
         assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce_2.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
 
         assert token.balanceOf(user.address) == 0
 
@@ -576,7 +576,7 @@ class TestAddAccountWhiteListWithAuthorization:
         # assertion
         assert token.usedNonces(issuer_addr, nonce) is True
         assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
 
         assert token.accountWhiteList(user.address) is True
         assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user.address
@@ -777,7 +777,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # assertion
         assert token.usedNonces(issuer_addr, nonce_2) is True
         assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce_2.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
 
         assert token.accountWhiteList(user.address) is False
         assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
@@ -1040,7 +1040,7 @@ class TestTransferWithAuthorization:
 
         # assertion
         assert tx.events["AuthorizationUsed"]["authorizer"] == from_user_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
 
         assert tx.events["Transfer"]["from"] == from_user_addr
         assert tx.events["Transfer"]["to"] == to_user_addr
@@ -1403,7 +1403,7 @@ class TestReceiveWithAuthorization:
 
         # assertion
         assert tx.events["AuthorizationUsed"]["authorizer"] == from_user_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == nonce.hex()
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
 
         assert tx.events["Transfer"]["from"] == from_user_addr
         assert tx.events["Transfer"]["to"] == to_user_addr
