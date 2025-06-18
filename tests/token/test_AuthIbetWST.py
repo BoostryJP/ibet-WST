@@ -17,8 +17,6 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 """
 
-import secrets
-
 import brownie
 
 from tests.helper import eip712_helper
