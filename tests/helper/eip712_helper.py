@@ -30,7 +30,7 @@ def generate_account():
     Generate a new Ethereum account with a private key and address.
     :return: Tuple of (private_key, address)
     """
-    private_key = keccak(secrets.token_bytes(32))
+    private_key = secrets.token_bytes(32)
     public_key = PublicKey.from_valid_secret(private_key).format(compressed=False)[1:]
     addr = to_checksum_address(keccak(public_key)[-20:])
     return private_key, addr
