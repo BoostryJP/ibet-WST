@@ -142,6 +142,13 @@ contract IbetWST is IbetERC20 {
     ) IbetERC20(name, initialOwner) {}
 
     // [FUNCTION]
+    /// @notice Get the number of decimals for the token
+    /// @dev Returns 0 as this token does not have decimals
+    function decimals() public view override returns (uint8) {
+        return 0;
+    }
+
+    // [FUNCTION]
     /// @notice Register an account to the whitelist
     /// @dev Only callable by the owner
     /// @param accountAddress The address of the account to be whitelisted
