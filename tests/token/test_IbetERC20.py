@@ -67,7 +67,7 @@ class TestMint:
         assert token.balanceOf(issuer.address) == 10
 
         assert tx.events["Mint"]["to"] == issuer.address
-        assert tx.events["Mint"]["amount"] == 10
+        assert tx.events["Mint"]["value"] == 10
 
     ##########################################################
     # Error
@@ -119,7 +119,7 @@ class TestBurn:
         assert token.balanceOf(user_1.address) == 0
 
         assert tx.events["Burn"]["from"] == user_1.address
-        assert tx.events["Burn"]["amount"] == 10
+        assert tx.events["Burn"]["value"] == 10
 
     ##########################################################
     # Error
@@ -178,7 +178,7 @@ class TestBurnFrom:
         assert token.balanceOf(user_1.address) == 5
 
         assert tx.events["Burn"]["from"] == user_1.address
-        assert tx.events["Burn"]["amount"] == 5
+        assert tx.events["Burn"]["value"] == 5
 
     ##########################################################
     # Error

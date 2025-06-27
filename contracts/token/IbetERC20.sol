@@ -29,24 +29,24 @@ contract IbetERC20 is ERC20, Ownable {
 
     // [EVENT]
     /// @notice Emitted when tokens are minted
-    event Mint(address indexed to, uint256 amount);
+    event Mint(address indexed to, uint256 value);
 
     // [EVENT]
     /// @notice Emitted when tokens are burned
-    event Burn(address indexed from, uint256 amount);
+    event Burn(address indexed from, uint256 value);
 
     // [FUNCTION]
     /// @notice Mint tokens to a specified address
     /// @param to The address to mint tokens to
-    /// @param amount The amount of tokens to mint
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
-        emit Mint(to, amount);
+    /// @param value The value of tokens to mint
+    function mint(address to, uint256 value) public onlyOwner {
+        _mint(to, value);
+        emit Mint(to, value);
     }
 
     // [FUNCTION]
     /// @notice Burn tokens from the caller's account
-    /// @param value The amount of tokens to burn
+    /// @param value The value of tokens to burn
     function burn(uint256 value) public virtual {
         _burn(_msgSender(), value);
         emit Burn(_msgSender(), value);
@@ -55,7 +55,7 @@ contract IbetERC20 is ERC20, Ownable {
     // [FUNCTION]
     /// @notice Burn tokens from a specified account
     /// @param account The address from which to burn tokens
-    /// @param value The amount of tokens to burn
+    /// @param value The value of tokens to burn
     function burnFrom(address account, uint256 value) public virtual {
         _spendAllowance(account, _msgSender(), value);
         _burn(account, value);

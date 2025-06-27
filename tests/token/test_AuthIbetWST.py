@@ -76,7 +76,7 @@ class TestMintWithAuthorization:
         digest = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce,
         )
 
@@ -103,7 +103,7 @@ class TestMintWithAuthorization:
         assert token.balanceOf(user.address) == 100
 
         assert tx.events["Mint"]["to"] == user.address
-        assert tx.events["Mint"]["amount"] == 100
+        assert tx.events["Mint"]["value"] == 100
 
     ##########################################################
     # Error
@@ -128,7 +128,7 @@ class TestMintWithAuthorization:
         digest = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce,
         )
 
@@ -168,7 +168,7 @@ class TestMintWithAuthorization:
         digest = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce,
         )
 
@@ -207,7 +207,7 @@ class TestMintWithAuthorization:
         digest = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce,
         )
 
@@ -264,7 +264,7 @@ class TestBurnWithAuthorization:
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_1,
         )
 
@@ -290,7 +290,7 @@ class TestBurnWithAuthorization:
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             from_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_2,
         )
 
@@ -317,7 +317,7 @@ class TestBurnWithAuthorization:
         assert token.balanceOf(user.address) == 0
 
         assert tx.events["Burn"]["from"] == user.address
-        assert tx.events["Burn"]["amount"] == 100
+        assert tx.events["Burn"]["value"] == 100
 
     ##########################################################
     # Error
@@ -342,7 +342,7 @@ class TestBurnWithAuthorization:
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_1,
         )
 
@@ -368,7 +368,7 @@ class TestBurnWithAuthorization:
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             from_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_2,
         )
 
@@ -408,7 +408,7 @@ class TestBurnWithAuthorization:
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_1,
         )
 
@@ -434,7 +434,7 @@ class TestBurnWithAuthorization:
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             from_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_2,
         )
 
@@ -473,7 +473,7 @@ class TestBurnWithAuthorization:
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             to_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_1,
         )
 
@@ -499,7 +499,7 @@ class TestBurnWithAuthorization:
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             from_address=user.address,
-            amount=100,
+            value=100,
             nonce=nonce_2,
         )
 

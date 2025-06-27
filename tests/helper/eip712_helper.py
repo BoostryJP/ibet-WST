@@ -75,7 +75,7 @@ def generate_domain_separator(
 def generate_mint_digest(
     domain_separator: bytes,
     to_address: str,
-    amount: int,
+    value: int,
     nonce: bytes,
 ) -> bytes:
     """
@@ -83,13 +83,13 @@ def generate_mint_digest(
 
     :param domain_separator: EIP-712 DOMAIN_SEPARATOR
     :param to_address: Address to mint tokens to
-    :param amount: Amount of tokens to mint
+    :param value: Value of tokens to mint
     :param nonce: Nonce for the operation, used to prevent replay attacks
     :return: EIP-712 digest for the mint operation
     """
 
     type_hash = keccak(
-        text="MintWithAuthorization(address to,uint256 amount,bytes32 nonce)"
+        text="MintWithAuthorization(address to,uint256 value,bytes32 nonce)"
     )
 
     struct_hash = keccak(
@@ -97,13 +97,13 @@ def generate_mint_digest(
             [
                 "bytes32",  # typeHash
                 "address",  # to
-                "uint256",  # amount
+                "uint256",  # value
                 "bytes32",  # nonce
             ],
             [
                 type_hash,
                 to_checksum_address(to_address),
-                amount,
+                value,
                 nonce,
             ],
         )
@@ -128,7 +128,7 @@ def generate_mint_digest(
 def generate_burn_digest(
     domain_separator: bytes,
     from_address: str,
-    amount: int,
+    value: int,
     nonce: bytes,
 ) -> bytes:
     """
@@ -136,13 +136,13 @@ def generate_burn_digest(
 
     :param domain_separator: EIP-712 DOMAIN_SEPARATOR
     :param from_address: Address to burn tokens from
-    :param amount: Amount of tokens to burn
+    :param value: Value of tokens to burn
     :param nonce: Nonce for the operation, used to prevent replay attacks
     :return: EIP-712 digest for the burn operation
     """
 
     type_hash = keccak(
-        text="BurnWithAuthorization(address from,uint256 amount,bytes32 nonce)"
+        text="BurnWithAuthorization(address from,uint256 value,bytes32 nonce)"
     )
 
     struct_hash = keccak(
@@ -150,13 +150,13 @@ def generate_burn_digest(
             [
                 "bytes32",  # typeHash
                 "address",  # from
-                "uint256",  # amount
+                "uint256",  # value
                 "bytes32",  # nonce
             ],
             [
                 type_hash,
                 to_checksum_address(from_address),
-                amount,
+                value,
                 nonce,
             ],
         )
@@ -427,8 +427,8 @@ def generate_request_trade_digest(
     :param sc_token_address: SC contract address
     :param seller_sc_account_address: Seller's SC account address
     :param buyer_sc_account_address: Buyer's SC account address
-    :param st_value: Amount of ST to trade
-    :param sc_value: Amount of SC to trade
+    :param st_value: Value of ST to trade
+    :param sc_value: Value of SC to trade
     :param memo: Optional memo for the trade request
     :param nonce: Nonce for the trade, used to prevent replay attacks
     :return: EIP-712 digest for the trade request
