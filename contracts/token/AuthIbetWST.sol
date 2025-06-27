@@ -29,12 +29,12 @@ contract AuthIbetWST is IbetWST {
 
     bytes32 public constant MINT_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "MintWithAuthorization(address to,uint256 amount,bytes32 nonce)"
+            "MintWithAuthorization(address to,uint256 value,bytes32 nonce)"
         );
 
     bytes32 public constant BURN_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "BurnWithAuthorization(address from,uint256 amount,bytes32 nonce)"
+            "BurnWithAuthorization(address from,uint256 value,bytes32 nonce)"
         );
 
     bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
@@ -112,14 +112,14 @@ contract AuthIbetWST is IbetWST {
     ///   - Can be called by anyone
     ///   - Token owner must sign the authorization
     /// @param to The address to mint tokens to
-    /// @param amount The amount of tokens to mint
+    /// @param value The value of tokens to mint
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
     /// @param s s value of the signature
     function mintWithAuthorization(
         address to,
-        uint256 amount,
+        uint256 value,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -127,7 +127,7 @@ contract AuthIbetWST is IbetWST {
     ) external returns (bool) {
         // Calculate the structHash for the EIP-712 message
         bytes32 structHash = keccak256(
-            abi.encode(MINT_WITH_AUTHORIZATION_TYPEHASH, to, amount, nonce)
+            abi.encode(MINT_WITH_AUTHORIZATION_TYPEHASH, to, value, nonce)
         );
         // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
         bytes32 digest = keccak256(
@@ -152,8 +152,8 @@ contract AuthIbetWST is IbetWST {
         usedNonces[recoveredAddress][nonce] = true;
         emit AuthorizationUsed(recoveredAddress, nonce);
         // Mint the tokens to the specified address
-        _mint(to, amount);
-        emit Mint(to, amount);
+        _mint(to, value);
+        emit Mint(to, value);
 
         return true;
     }
@@ -164,14 +164,14 @@ contract AuthIbetWST is IbetWST {
     ///   - Can be called by anyone
     ///   - Token owner must sign the authorization
     /// @param from The address from which to burn tokens
-    /// @param amount The amount of tokens to burn
+    /// @param value The value of tokens to burn
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
     /// @param s s value of the signature
     function burnWithAuthorization(
         address from,
-        uint256 amount,
+        uint256 value,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -179,7 +179,7 @@ contract AuthIbetWST is IbetWST {
     ) external returns (bool) {
         // Calculate the structHash for the EIP-712 message
         bytes32 structHash = keccak256(
-            abi.encode(BURN_WITH_AUTHORIZATION_TYPEHASH, from, amount, nonce)
+            abi.encode(BURN_WITH_AUTHORIZATION_TYPEHASH, from, value, nonce)
         );
         // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
         bytes32 digest = keccak256(
@@ -204,8 +204,8 @@ contract AuthIbetWST is IbetWST {
         usedNonces[recoveredAddress][nonce] = true;
         emit AuthorizationUsed(recoveredAddress, nonce);
         // Burn the tokens from the specified address
-        _burn(from, amount);
-        emit Burn(from, amount);
+        _burn(from, value);
+        emit Burn(from, value);
 
         return true;
     }
@@ -390,7 +390,7 @@ contract AuthIbetWST is IbetWST {
     /// @dev Can be called by anyone
     /// @param from The address of the sender
     /// @param to The address of the recipient
-    /// @param value The amount of tokens to transfer
+    /// @param value The value of tokens to transfer
     /// @param validAfter The minimum timestamp when the transaction becomes valid
     /// @param validBefore The maximum timestamp when the transaction becomes invalid
     /// @param nonce The authorization nonce for the transaction
@@ -429,7 +429,7 @@ contract AuthIbetWST is IbetWST {
     /// @dev Only the recipient can call this function
     /// @param from The address of the sender
     /// @param to The address of the recipient
-    /// @param value The amount of tokens to receive
+    /// @param value The value of tokens to receive
     /// @param validAfter The minimum timestamp when the transaction becomes valid
     /// @param validBefore The maximum timestamp when the transaction becomes invalid
     /// @param nonce The authorization nonce for the transaction
@@ -484,8 +484,8 @@ contract AuthIbetWST is IbetWST {
     /// @param SCTokenAddress The address of the SC contract to be traded
     /// @param sellerSCAccountAddress The address of the seller's SC account
     /// @param buyerSCAccountAddress The address of the buyer's SC account
-    /// @param STValue The amount of ST to be traded
-    /// @param SCValue The amount of SC to be traded
+    /// @param STValue The value of ST to be traded
+    /// @param SCValue The value of SC to be traded
     /// @param memo Optional memo for the trade request
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
