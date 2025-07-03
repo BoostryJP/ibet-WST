@@ -49,7 +49,8 @@ contract IbetWST is IbetERC20 {
     enum State {
         Pending,
         Executed,
-        Cancelled
+        Cancelled,
+        Rejected
     }
 
     // Trade request structure
@@ -124,6 +125,28 @@ contract IbetWST is IbetERC20 {
     /// @param STValue The amount of ST tokens to be traded
     /// @param SCValue The amount of SC tokens to be traded
     event TradeAccepted(
+        uint256 indexed index,
+        address indexed sellerSTAccountAddress,
+        address indexed buyerSTAccountAddress,
+        address SCTokenAddress,
+        address sellerSCAccountAddress,
+        address buyerSCAccountAddress,
+        uint256 STValue,
+        uint256 SCValue
+    );
+
+    // [EVENT]
+    /// @notice Event emitted when a trade is rejected
+    /// @dev Triggered when a trade is rejected
+    /// @param index The index of the trade request
+    /// @param sellerSTAccountAddress The address of the seller's ST account
+    /// @param buyerSTAccountAddress The address of the buyer's ST account
+    /// @param SCTokenAddress The address of the SCToken
+    /// @param sellerSCAccountAddress The address of the seller's SC account
+    /// @param buyerSCAccountAddress The address of the buyer's SC account
+    /// @param STValue The amount of ST tokens to be traded
+    /// @param SCValue The amount of SC tokens to be traded
+    event TradeRejected(
         uint256 indexed index,
         address indexed sellerSTAccountAddress,
         address indexed buyerSTAccountAddress,
@@ -403,6 +426,41 @@ contract IbetWST is IbetERC20 {
         );
         // Emit the TradeAccepted event
         emit TradeAccepted(
+            index,
+            _trades[index].sellerSTAccountAddress,
+            _trades[index].buyerSTAccountAddress,
+            _trades[index].SCTokenAddress,
+            _trades[index].sellerSCAccountAddress,
+            _trades[index].buyerSCAccountAddress,
+            _trades[index].STValue,
+            _trades[index].SCValue
+        );
+        return true;
+    }
+
+    // [FUNCTION]
+    /// @notice Reject a trade request
+    /// @dev
+    ///   - The trade request must be in the Pending state
+    ///   - The caller must be the buyer's ST account address of the trade request
+    /// @param index The index of the trade request to be rejected
+    function rejectTrade(uint256 index) public returns (bool) {
+        // Check if the trade request is acceptable
+        if (_trades[index].state != State.Pending) {
+            revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
+        }
+        // Check if the caller is the trade request's buyer
+        address buyerSTAccountAddress = _msgSender();
+        if (_trades[index].buyerSTAccountAddress != buyerSTAccountAddress) {
+            revert IbetWSTErrors.TradeRequestNotAcceptableByCaller(
+                index,
+                buyerSTAccountAddress
+            );
+        }
+        // Update the state of the trade request to Cancelled
+        _trades[index].state = State.Rejected;
+        // Emit the TradeRejected event
+        emit TradeRejected(
             index,
             _trades[index].sellerSTAccountAddress,
             _trades[index].buyerSTAccountAddress,

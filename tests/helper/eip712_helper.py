@@ -575,3 +575,50 @@ def generate_accept_trade_digest(
         )
     )
     return digest
+
+
+def generate_reject_trade_digest(
+    domain_separator: bytes,
+    index: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for reject trade with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param index: Index of the trade to reject
+    :param nonce: Nonce for the trade, used to prevent replay attacks
+    :return: EIP-712 digest for the trade rejection
+    """
+
+    type_hash = keccak(text="RejectTradeWithAuthorization(uint256 index,bytes32 nonce)")
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "uint256",  # index
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                index,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
