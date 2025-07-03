@@ -70,6 +70,9 @@ contract AuthIbetWST is IbetWST {
     bytes32 public constant ACCEPT_TRADE_WITH_AUTHORIZATION_TYPEHASH =
         keccak256("AcceptTradeWithAuthorization(uint256 index,bytes32 nonce)");
 
+    bytes32 public constant REJECT_TRADE_WITH_AUTHORIZATION_TYPEHASH =
+        keccak256("RejectTradeWithAuthorization(uint256 index,bytes32 nonce)");
+
     // Mapping to manage the usage status of authorization nonces
     mapping(address => mapping(bytes32 => bool)) public usedNonces;
 
@@ -742,6 +745,80 @@ contract AuthIbetWST is IbetWST {
             _trades[index].STValue,
             _trades[index].SCValue
         );
+        return true;
+    }
+
+    // [FUNCTION]
+    /// @notice Reject a trade request with authorization
+    /// @dev
+    ///   - Can be called by anyone
+    ///   - The buyer's ST account of the trade request is the authorizer
+    ///   - The trade request must be in the Pending state
+    /// @param index The index of the trade request to reject
+    /// @param nonce The authorization nonce for the transaction
+    /// @param v v value of the signature
+    /// @param r r value of the signature
+    /// @param s s value of the signature
+    function rejectTradeWithAuthorization(
+        uint256 index,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (bool) {
+        // Check if the trade request is acceptable
+        if (_trades[index].state != State.Pending) {
+            revert AuthIbetWSTErrors.TradeRequestIsNotAcceptable(index);
+        }
+        // Get the buyer's security token account address from the trade request
+        address buyerSTAccountAddress = _trades[index].buyerSTAccountAddress;
+
+        // Ensure the nonce has not been used
+        if (usedNonces[buyerSTAccountAddress][nonce]) {
+            // Throw an error if the nonce has already been used
+            revert AuthIbetWSTErrors.AuthorizationNonceAlreadyUsed(
+                buyerSTAccountAddress,
+                nonce
+            );
+        }
+        // Calculate the structHash for the EIP-712 message
+        bytes32 structHash = keccak256(
+            abi.encode(REJECT_TRADE_WITH_AUTHORIZATION_TYPEHASH, index, nonce)
+        );
+        // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+        // Verify the signature
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        if (
+            recoveredAddress != buyerSTAccountAddress ||
+            recoveredAddress == address(0)
+        ) {
+            // Throw an error if the signature does not match the buyer's ST account address
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(
+                buyerSTAccountAddress
+            );
+        }
+        // Mark the nonce as used and emit an event
+        usedNonces[buyerSTAccountAddress][nonce] = true;
+        emit AuthorizationUsed(buyerSTAccountAddress, nonce);
+
+        // Update the state of the trade request to Rejected
+        _trades[index].state = State.Rejected;
+
+        // Emit the TradeRejected event
+        emit TradeRejected(
+            index,
+            _trades[index].sellerSTAccountAddress,
+            _trades[index].buyerSTAccountAddress,
+            _trades[index].SCTokenAddress,
+            _trades[index].sellerSCAccountAddress,
+            _trades[index].buyerSCAccountAddress,
+            _trades[index].STValue,
+            _trades[index].SCValue
+        );
+
         return true;
     }
 }

@@ -1043,3 +1043,124 @@ class TestAcceptTrade:
             revert_msg=f"ERC20InsufficientAllowance: {st_token.address.lower()}, 200, 201"
         ):
             st_token.acceptTrade(1, {"from": buyer_st})
+
+
+class TestRejectTrade:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    #  Normal_1
+    def test_normal_1(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        seller_st = users["eoa3"]
+        buyer_st = users["eoa4"]
+
+        # deploy ST token
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st.address, {"from": issuer})
+
+        # requestTrade
+        st_token.requestTrade(
+            buyer_st.address,
+            st_token.address,
+            seller_st.address,
+            buyer_st.address,
+            100,  # ST value
+            200,  # SC value
+            "trade_memo",
+            {"from": seller_st},
+        )
+
+        # rejectTrade
+        index = st_token.getNbTrades()
+        tx = st_token.rejectTrade(index, {"from": buyer_st})
+
+        # assertion
+        assert st_token.getTrade(1)[7] == 3  # status (Rejected)
+
+        assert tx.events["TradeRejected"]["index"] == index
+        assert tx.events["TradeRejected"]["sellerSTAccountAddress"] == seller_st.address
+        assert tx.events["TradeRejected"]["buyerSTAccountAddress"] == buyer_st.address
+        assert tx.events["TradeRejected"]["SCTokenAddress"] == st_token.address
+        assert tx.events["TradeRejected"]["sellerSCAccountAddress"] == seller_st.address
+        assert tx.events["TradeRejected"]["buyerSCAccountAddress"] == buyer_st.address
+        assert tx.events["TradeRejected"]["STValue"] == 100
+        assert tx.events["TradeRejected"]["SCValue"] == 200
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1
+    # - Check that the rejectTrade fails when the trade is not in Pending status
+    def test_error_1(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        seller_st = users["eoa3"]
+        buyer_st = users["eoa4"]
+
+        # deploy ST token
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st.address, {"from": issuer})
+
+        # requestTrade
+        st_token.requestTrade(
+            buyer_st.address,
+            st_token.address,
+            seller_st.address,
+            buyer_st.address,
+            100,  # ST value
+            200,  # SC value
+            "trade_memo",
+            {"from": seller_st},
+        )
+
+        # rejectTrade (1st time)
+        index = st_token.getNbTrades()
+        st_token.rejectTrade(index, {"from": buyer_st})
+
+        # rejectTrade (2nd time)
+        with brownie.reverts(revert_msg=f"TradeRequestIsNotAcceptable: {index}"):
+            st_token.rejectTrade(index, {"from": buyer_st})
+
+    # Error_2
+    # - Check that the rejectTrade fails when the caller is not the buyer
+    def test_error_2(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        seller_st = users["eoa3"]
+        buyer_st = users["eoa4"]
+
+        # deploy ST token
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(seller_st.address, {"from": issuer})
+        st_token.addAccountWhiteList(buyer_st.address, {"from": issuer})
+
+        # requestTrade
+        st_token.requestTrade(
+            buyer_st.address,
+            st_token.address,
+            seller_st.address,
+            buyer_st.address,
+            100,  # ST value
+            200,  # SC value
+            "trade_memo",
+            {"from": seller_st},
+        )
+
+        # rejectTrade
+        index = st_token.getNbTrades()
+        with brownie.reverts(
+            revert_msg=f"TradeRequestNotAcceptableByCaller: {index}, {seller_st.address.lower()}"
+        ):
+            st_token.rejectTrade(index, {"from": seller_st})
