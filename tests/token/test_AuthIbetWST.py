@@ -251,7 +251,7 @@ class TestBurnWithAuthorization:
     def test_normal_1(self, AuthIbetWST, users):
         admin = users["eoa1"]
         issuer_pk, issuer_addr = eip712_helper.generate_account()
-        user = users["eoa2"]
+        user_pk, user_addr = eip712_helper.generate_account()
         relayer = users["eoa3"]
 
         # deploy
@@ -263,7 +263,7 @@ class TestBurnWithAuthorization:
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
-            to_address=user.address,
+            to_address=user_addr,
             value=100,
             nonce=nonce_1,
         )
@@ -274,7 +274,7 @@ class TestBurnWithAuthorization:
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
         token.mintWithAuthorization(
-            user.address,
+            user_addr,
             100,
             nonce_1,
             signature_1.v,
@@ -289,18 +289,18 @@ class TestBurnWithAuthorization:
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
-            from_address=user.address,
+            from_address=user_addr,
             value=100,
             nonce=nonce_2,
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, user_pk)
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
         tx = token.burnWithAuthorization(
-            user.address,
+            user_addr,
             100,
             nonce_2,
             signature_2.v,
@@ -310,13 +310,13 @@ class TestBurnWithAuthorization:
         )
 
         # assertion
-        assert token.usedNonces(issuer_addr, nonce_2) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
+        assert token.usedNonces(user_addr, nonce_2) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == user_addr
         assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
 
-        assert token.balanceOf(user.address) == 0
+        assert token.balanceOf(user_addr) == 0
 
-        assert tx.events["Burn"]["from"] == user.address
+        assert tx.events["Burn"]["from"] == user_addr
         assert tx.events["Burn"]["value"] == 100
 
     ##########################################################
@@ -377,7 +377,9 @@ class TestBurnWithAuthorization:
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(
+            f"InvalidAuthorizationSignature: {relayer.address.lower()}"
+        ):
             token.burnWithAuthorization(
                 relayer.address,  # incorrect account address
                 100,
@@ -390,7 +392,7 @@ class TestBurnWithAuthorization:
 
     # Error_1_2
     # - authorization signature is not valid
-    #   - signature is signed by other account, not token owner
+    #   - signature is signed by other account, not the user
     def test_error_1_2(self, AuthIbetWST, users):
         admin = users["eoa1"]
         issuer_pk, issuer_addr = eip712_helper.generate_account()
@@ -444,7 +446,7 @@ class TestBurnWithAuthorization:
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(f"InvalidAuthorizationSignature: {user.address.lower()}"):
             token.burnWithAuthorization(
                 user.address,
                 100,
@@ -460,7 +462,7 @@ class TestBurnWithAuthorization:
     def test_error_2(self, AuthIbetWST, users):
         admin = users["eoa1"]
         issuer_pk, issuer_addr = eip712_helper.generate_account()
-        user = users["eoa2"]
+        user_pk, user_addr = eip712_helper.generate_account()
         relayer = users["eoa3"]
 
         # deploy
@@ -472,7 +474,7 @@ class TestBurnWithAuthorization:
         # [MINT] generate mint digest
         digest_1 = eip712_helper.generate_mint_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
-            to_address=user.address,
+            to_address=user_addr,
             value=100,
             nonce=nonce_1,
         )
@@ -483,7 +485,7 @@ class TestBurnWithAuthorization:
         # [MINT] mint with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
         token.mintWithAuthorization(
-            user.address,
+            user_addr,
             100,
             nonce_1,
             signature_1.v,
@@ -498,18 +500,18 @@ class TestBurnWithAuthorization:
         # [BURN] generate burn digest
         digest_2 = eip712_helper.generate_burn_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
-            from_address=user.address,
+            from_address=user_addr,
             value=100,
             nonce=nonce_2,
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, user_pk)
 
         # [BURN] burn with authorization (1st time)
         # - transaction is sent not by user but by relayer
         token.burnWithAuthorization(
-            user.address,
+            user_addr,
             100,
             nonce_2,
             signature_2.v,
@@ -521,10 +523,10 @@ class TestBurnWithAuthorization:
         # [BURN] burn with authorization (2nd time)
         # - transaction is sent not by user but by relayer
         with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce_2}"
+            f"AuthorizationNonceAlreadyUsed: {user_addr.lower()}, {nonce_2}"
         ):
             token.burnWithAuthorization(
-                user.address,
+                user_addr,
                 100,
                 nonce_2,
                 signature_2.v,

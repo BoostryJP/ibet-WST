@@ -165,7 +165,6 @@ contract AuthIbetWST is IbetWST {
     /// @notice Burn tokens with authorization
     /// @dev
     ///   - Can be called by anyone
-    ///   - Token owner must sign the authorization
     /// @param from The address from which to burn tokens
     /// @param value The value of tokens to burn
     /// @param nonce The authorization nonce for the transaction
@@ -190,9 +189,9 @@ contract AuthIbetWST is IbetWST {
         );
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
-        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the token owner's address
-            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
+        if (recoveredAddress != from || recoveredAddress == address(0)) {
+            // Throw an error if the signature does not match the token sender's address
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(from);
         }
 
         // Ensure the nonce has not been used
