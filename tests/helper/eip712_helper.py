@@ -180,32 +180,36 @@ def generate_burn_digest(
 
 def generate_add_account_whitelist_digest(
     domain_separator: bytes,
-    account_address: str,
+    st_account_address: str,
+    sc_account_address: str,
     nonce: bytes,
 ) -> bytes:
     """
     Generate the EIP-712 digest for adding an account to the whitelist.
 
     :param domain_separator: EIP-712 DOMAIN_SEPARATOR
-    :param account_address: Address of the account to add to the whitelist
+    :param st_account_address: Address of the ST account to add to the whitelist
+    :param sc_account_address: Address of the SC account to add to the whitelist
     :param nonce: Nonce for the operation, used to prevent replay attacks
     :return: EIP-712 digest for the add whitelist operation
     """
 
     type_hash = keccak(
-        text="AddAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+        text="AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddress,bytes32 nonce)"
     )
 
     struct_hash = keccak(
         encode(
             [
                 "bytes32",  # typeHash
-                "address",  # account
+                "address",  # STAccountAddress
+                "address",  # SCAccountAddress
                 "bytes32",  # nonce
             ],
             [
                 type_hash,
-                to_checksum_address(account_address),
+                to_checksum_address(st_account_address),
+                to_checksum_address(sc_account_address),
                 nonce,
             ],
         )
@@ -229,32 +233,32 @@ def generate_add_account_whitelist_digest(
 
 def generate_delete_account_whitelist_digest(
     domain_separator: bytes,
-    account_address: str,
+    st_account_address: str,
     nonce: bytes,
 ) -> bytes:
     """
     Generate the EIP-712 digest for deleting an account from the whitelist.
 
     :param domain_separator: EIP-712 DOMAIN_SEPARATOR
-    :param account_address: Address of the account to delete from the whitelist
+    :param st_account_address: Address of the ST account to delete from the whitelist
     :param nonce: Nonce for the operation, used to prevent replay attacks
     :return: EIP-712 digest for the delete whitelist operation
     """
 
     type_hash = keccak(
-        text="DeleteAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+        text="DeleteAccountWhiteListWithAuthorization(address STAccountAddress,bytes32 nonce)"
     )
 
     struct_hash = keccak(
         encode(
             [
                 "bytes32",  # typeHash
-                "address",  # account
+                "address",  # STAccountAddress
                 "bytes32",  # nonce
             ],
             [
                 type_hash,
-                to_checksum_address(account_address),
+                to_checksum_address(st_account_address),
                 nonce,
             ],
         )
@@ -411,8 +415,6 @@ def generate_request_trade_digest(
     seller_st_account_address: str,
     buyer_st_account_address: str,
     sc_token_address: str,
-    seller_sc_account_address: str,
-    buyer_sc_account_address: str,
     st_value: int,
     sc_value: int,
     memo: str,
@@ -425,8 +427,6 @@ def generate_request_trade_digest(
     :param seller_st_account_address: Seller's ST account address
     :param buyer_st_account_address: Buyer's ST account address
     :param sc_token_address: SC contract address
-    :param seller_sc_account_address: Seller's SC account address
-    :param buyer_sc_account_address: Buyer's SC account address
     :param st_value: Value of ST to trade
     :param sc_value: Value of SC to trade
     :param memo: Optional memo for the trade request
@@ -435,7 +435,7 @@ def generate_request_trade_digest(
     """
 
     type_hash = keccak(
-        text="RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
+        text="RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
     )
 
     struct_hash = keccak(
@@ -445,8 +445,6 @@ def generate_request_trade_digest(
                 "address",  # sellerSTAccountAddress
                 "address",  # buyerSTAccountAddress
                 "address",  # SCTokenAddress
-                "address",  # sellerSCAccountAddress
-                "address",  # buyerSCAccountAddress
                 "uint256",  # STValue
                 "uint256",  # SCValue
                 "string",  # memo
@@ -457,8 +455,6 @@ def generate_request_trade_digest(
                 to_checksum_address(seller_st_account_address),
                 to_checksum_address(buyer_st_account_address),
                 to_checksum_address(sc_token_address),
-                to_checksum_address(seller_sc_account_address),
-                to_checksum_address(buyer_sc_account_address),
                 st_value,
                 sc_value,
                 memo,
