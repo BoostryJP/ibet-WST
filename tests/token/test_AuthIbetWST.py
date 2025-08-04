@@ -2095,11 +2095,9 @@ class TestRequestTradeWithAuthorization:
         issuer = users["eoa2"]
 
         seller_st_pk, seller_st_addr = eip712_helper.generate_account()
-        seller_sc = users["eoa3"]
         buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
-        buyer_sc = users["eoa4"]
 
-        relayer = users["eoa5"]
+        relayer = users["eoa3"]
 
         # deploy ST token
         st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
@@ -2154,9 +2152,8 @@ class TestRequestTradeWithAuthorization:
         seller_st_pk, seller_st_addr = eip712_helper.generate_account()
         seller_sc = users["eoa3"]
         buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
-        buyer_sc = users["eoa4"]
 
-        relayer = users["eoa5"]
+        relayer = users["eoa4"]
 
         # deploy ST token
         st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)

@@ -138,7 +138,6 @@ class TestDeleteAccountWhiteList:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         user_1_st = users["eoa3"]
-        user_1_sc = users["eoa4"]
 
         # deploy
         token = admin.deploy(IbetWST, "IbetWST", issuer.address)
@@ -675,9 +674,7 @@ class TestRequestTrade:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         seller_st = users["eoa3"]
-        seller_sc = users["eoa4"]
-        buyer_st = users["eoa5"]
-        buyer_sc = users["eoa6"]
+        buyer_st = users["eoa4"]
 
         # deploy ST token
         st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
@@ -709,7 +706,6 @@ class TestRequestTrade:
         seller_st = users["eoa3"]
         seller_sc = users["eoa4"]
         buyer_st = users["eoa5"]
-        buyer_sc = users["eoa6"]
 
         # deploy ST token
         st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
@@ -845,7 +841,6 @@ class TestCancelTrade:
         seller_st = users["eoa3"]
         seller_sc = users["eoa4"]
         buyer_st = users["eoa5"]
-        buyer_sc = users["eoa6"]
 
         # deploy ST token
         st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
