@@ -27,8 +27,15 @@ import {IbetWSTErrors} from "../utils/Errors.sol";
 ///   - This contract extends the IbetERC20 interface to implement a whitelist mechanism for accounts.
 ///   - Also implements a trade request system for trading WST and SC (Stable Coin) tokens.
 contract IbetWST is IbetERC20 {
+    /// Account whitelist structure
+    struct AccountWhiteList {
+        address STAccountAddress; // Address of the ST account for settlement
+        address SCAccountAddress; // Address of the SC account for settlement
+        bool listed; // Whether the account is whitelisted
+    }
+
     /// Account whitelist
-    mapping(address => bool) public accountWhiteList;
+    mapping(address => AccountWhiteList) public accountWhiteList;
 
     // [EVENT]
     /// @notice Event emitted when an account is added to the whitelist
@@ -174,28 +181,34 @@ contract IbetWST is IbetERC20 {
     // [FUNCTION]
     /// @notice Register an account to the whitelist
     /// @dev Only callable by the owner
-    /// @param accountAddress The address of the account to be whitelisted
+    /// @param STAccountAddress The address of the ST account to be whitelisted
+    /// @param SCAccountAddress The address of the SC account to be whitelisted
     function addAccountWhiteList(
-        address accountAddress
+        address STAccountAddress,
+        address SCAccountAddress
     ) public onlyOwner returns (bool) {
         // Add to whitelist
-        accountWhiteList[accountAddress] = true;
+        accountWhiteList[STAccountAddress] = AccountWhiteList({
+            STAccountAddress: STAccountAddress,
+            SCAccountAddress: SCAccountAddress,
+            listed: true
+        });
         // Emit event
-        emit AccountWhiteListAdded(accountAddress);
+        emit AccountWhiteListAdded(STAccountAddress);
         return true;
     }
 
     // [FUNCTION]
     /// @notice Remove an account from the whitelist
     /// @dev Only callable by the owner
-    /// @param accountAddress The address of the account to be removed from the whitelist
+    /// @param STAccountAddress The address of the ST account to be removed from the whitelist
     function deleteAccountWhiteList(
-        address accountAddress
+        address STAccountAddress
     ) public onlyOwner returns (bool) {
         // Remove from whitelist
-        accountWhiteList[accountAddress] = false;
+        delete accountWhiteList[STAccountAddress];
         // Emit event
-        emit AccountWhiteListDeleted(accountAddress);
+        emit AccountWhiteListDeleted(STAccountAddress);
         return true;
     }
 
@@ -213,11 +226,11 @@ contract IbetWST is IbetERC20 {
     ) public override returns (bool) {
         address from = _msgSender();
         // Check if the sender is whitelisted
-        if (accountWhiteList[from] == false) {
+        if (accountWhiteList[from].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(from);
         }
         // Check if the recipient is whitelisted
-        if (accountWhiteList[to] == false) {
+        if (accountWhiteList[to].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(to);
         }
         // Proceed with the transfer
@@ -240,11 +253,11 @@ contract IbetWST is IbetERC20 {
         uint256 value
     ) public override returns (bool) {
         // Check if the sender is whitelisted
-        if (accountWhiteList[from] == false) {
+        if (accountWhiteList[from].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(from);
         }
         // Check if the recipient is whitelisted
-        if (accountWhiteList[to] == false) {
+        if (accountWhiteList[to].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(to);
         }
         // Consume the allowance
@@ -305,29 +318,31 @@ contract IbetWST is IbetERC20 {
     ///   - The buyer's ST account address must be whitelisted
     /// @param buyerSTAccountAddress The address of the buyer's ST account
     /// @param SCTokenAddress The address of the SC contract to be traded
-    /// @param sellerSCAccountAddress The address of the seller's SC account
-    /// @param buyerSCAccountAddress The address of the buyer's SC account
     /// @param STValue The amount of ST tokens to be traded
     /// @param SCValue The amount of SC tokens to be traded
     /// @param memo Optional memo for the trade request
     function requestTrade(
         address buyerSTAccountAddress,
         address SCTokenAddress,
-        address sellerSCAccountAddress,
-        address buyerSCAccountAddress,
         uint256 STValue,
         uint256 SCValue,
         string memory memo
     ) public returns (bool) {
         address sellerSTAccountAddress = _msgSender();
-        // Check if the sellerSTAccountAddress is whitelisted
-        if (accountWhiteList[sellerSTAccountAddress] == false) {
+        // Check if the seller account is whitelisted
+        if (accountWhiteList[sellerSTAccountAddress].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(sellerSTAccountAddress);
         }
-        // Check if the buyerSTAccountAddress is whitelisted
-        if (accountWhiteList[buyerSTAccountAddress] == false) {
+        // Check if the buyer account is whitelisted
+        if (accountWhiteList[buyerSTAccountAddress].listed == false) {
             revert IbetWSTErrors.AccountNotWhitelisted(buyerSTAccountAddress);
         }
+        // Retrieve the SC account addresses from the whitelist
+        address sellerSCAccountAddress = accountWhiteList[
+            sellerSTAccountAddress
+        ].SCAccountAddress;
+        address buyerSCAccountAddress = accountWhiteList[buyerSTAccountAddress]
+            .SCAccountAddress;
         // Increment the index for trade requests
         _index++;
         // Create a new trade request

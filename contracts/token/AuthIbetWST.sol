@@ -39,14 +39,14 @@ contract AuthIbetWST is IbetWST {
 
     bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "AddAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+            "AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddress,bytes32 nonce)"
         );
 
     bytes32
         public
         constant DELETE_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
             keccak256(
-                "DeleteAccountWhiteListWithAuthorization(address accountAddress,bytes32 nonce)"
+                "DeleteAccountWhiteListWithAuthorization(address STAccountAddress,bytes32 nonce)"
             );
 
     bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH =
@@ -61,7 +61,7 @@ contract AuthIbetWST is IbetWST {
 
     bytes32 public constant REQUEST_TRADE_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,address sellerSCAccountAddress,address buyerSCAccountAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
+            "RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
         );
 
     bytes32 public constant CANCEL_TRADE_WITH_AUTHORIZATION_TYPEHASH =
@@ -217,13 +217,15 @@ contract AuthIbetWST is IbetWST {
     /// @dev
     ///   - Can be called by anyone
     ///   - Token owner must sign the authorization
-    /// @param accountAddress The address of the account to be added to the whitelist
+    /// @param STAccountAddress The address of the ST account to be added to the whitelist
+    /// @param SCAccountAddress The address of the SC account to be added to the whitelist
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
     /// @param s s value of the signature
     function addAccountWhiteListWithAuthorization(
-        address accountAddress,
+        address STAccountAddress,
+        address SCAccountAddress,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -233,7 +235,8 @@ contract AuthIbetWST is IbetWST {
         bytes32 structHash = keccak256(
             abi.encode(
                 ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH,
-                accountAddress,
+                STAccountAddress,
+                SCAccountAddress,
                 nonce
             )
         );
@@ -261,9 +264,13 @@ contract AuthIbetWST is IbetWST {
         emit AuthorizationUsed(recoveredAddress, nonce);
 
         // Add to whitelist
-        accountWhiteList[accountAddress] = true;
+        accountWhiteList[STAccountAddress] = AccountWhiteList({
+            STAccountAddress: STAccountAddress,
+            SCAccountAddress: SCAccountAddress,
+            listed: true
+        });
         // Emit event
-        emit AccountWhiteListAdded(accountAddress);
+        emit AccountWhiteListAdded(STAccountAddress);
 
         return true;
     }
@@ -273,13 +280,13 @@ contract AuthIbetWST is IbetWST {
     /// @dev
     ///   - Can be called by anyone
     ///   - Token owner must sign the authorization
-    /// @param accountAddress The address of the account to be deleted from the whitelist
+    /// @param STAccountAddress The address of the ST account to be removed from the whitelist
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
     /// @param s s value of the signature
     function deleteAccountWhiteListWithAuthorization(
-        address accountAddress,
+        address STAccountAddress,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -289,7 +296,7 @@ contract AuthIbetWST is IbetWST {
         bytes32 structHash = keccak256(
             abi.encode(
                 DELETE_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH,
-                accountAddress,
+                STAccountAddress,
                 nonce
             )
         );
@@ -317,9 +324,9 @@ contract AuthIbetWST is IbetWST {
         emit AuthorizationUsed(recoveredAddress, nonce);
 
         // Delete from whitelist
-        accountWhiteList[accountAddress] = false;
+        delete accountWhiteList[STAccountAddress];
         // Emit event
-        emit AccountWhiteListDeleted(accountAddress);
+        emit AccountWhiteListDeleted(STAccountAddress);
 
         return true;
     }
@@ -383,6 +390,15 @@ contract AuthIbetWST is IbetWST {
         // Mark the nonce as used and emit an event
         usedNonces[from][nonce] = true;
         emit AuthorizationUsed(from, nonce);
+
+        // Check if the sender is whitelisted
+        if (accountWhiteList[from].listed == false) {
+            revert AuthIbetWSTErrors.AccountNotWhitelisted(from);
+        }
+        // Check if the recipient is whitelisted
+        if (accountWhiteList[to].listed == false) {
+            revert AuthIbetWSTErrors.AccountNotWhitelisted(to);
+        }
         // Execute the ERC-20 transfer (updates balance and emits Transfer event internally)
         _transfer(from, to, value);
     }
@@ -484,8 +500,6 @@ contract AuthIbetWST is IbetWST {
     /// @param sellerSTAccountAddress The address of the seller's ST account (authorizer)
     /// @param buyerSTAccountAddress The address of the buyer's ST account
     /// @param SCTokenAddress The address of the SC contract to be traded
-    /// @param sellerSCAccountAddress The address of the seller's SC account
-    /// @param buyerSCAccountAddress The address of the buyer's SC account
     /// @param STValue The value of ST to be traded
     /// @param SCValue The value of SC to be traded
     /// @param memo Optional memo for the trade request
@@ -497,8 +511,6 @@ contract AuthIbetWST is IbetWST {
         address sellerSTAccountAddress,
         address buyerSTAccountAddress,
         address SCTokenAddress,
-        address sellerSCAccountAddress,
-        address buyerSCAccountAddress,
         uint256 STValue,
         uint256 SCValue,
         string memory memo,
@@ -508,13 +520,13 @@ contract AuthIbetWST is IbetWST {
         bytes32 s
     ) external returns (bool) {
         // Check if the sellerSTAccountAddress is whitelisted
-        if (accountWhiteList[sellerSTAccountAddress] == false) {
+        if (accountWhiteList[sellerSTAccountAddress].listed == false) {
             revert AuthIbetWSTErrors.AccountNotWhitelisted(
                 sellerSTAccountAddress
             );
         }
         // Check if the buyerSTAccountAddress is whitelisted
-        if (accountWhiteList[buyerSTAccountAddress] == false) {
+        if (accountWhiteList[buyerSTAccountAddress].listed == false) {
             revert AuthIbetWSTErrors.AccountNotWhitelisted(
                 buyerSTAccountAddress
             );
@@ -535,8 +547,6 @@ contract AuthIbetWST is IbetWST {
                 sellerSTAccountAddress,
                 buyerSTAccountAddress,
                 SCTokenAddress,
-                sellerSCAccountAddress,
-                buyerSCAccountAddress,
                 STValue,
                 SCValue,
                 memo,
@@ -562,6 +572,12 @@ contract AuthIbetWST is IbetWST {
         usedNonces[sellerSTAccountAddress][nonce] = true;
         emit AuthorizationUsed(sellerSTAccountAddress, nonce);
 
+        // Retrieve the SC account addresses from the whitelist
+        address sellerSCAccountAddress = accountWhiteList[
+            sellerSTAccountAddress
+        ].SCAccountAddress;
+        address buyerSCAccountAddress = accountWhiteList[buyerSTAccountAddress]
+            .SCAccountAddress;
         // Increment the index for trade requests
         _index++;
         // Create a new trade request
