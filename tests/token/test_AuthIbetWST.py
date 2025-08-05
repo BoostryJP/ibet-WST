@@ -546,8 +546,9 @@ class TestAddAccountWhiteListWithAuthorization:
         admin = users["eoa1"]
         issuer_pk, issuer_addr = eip712_helper.generate_account()
         user_st = users["eoa2"]
-        user_sc = users["eoa3"]
-        relayer = users["eoa4"]
+        user_sc_in = users["eoa3"]
+        user_sc_out = users["eoa4"]
+        relayer = users["eoa5"]
 
         # deploy
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
@@ -559,7 +560,8 @@ class TestAddAccountWhiteListWithAuthorization:
         digest = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user_st.address,
-            sc_account_address=user_sc.address,
+            sc_account_address_in=user_sc_in.address,
+            sc_account_address_out=user_sc_out.address,
             nonce=nonce,
         )
 
@@ -570,7 +572,8 @@ class TestAddAccountWhiteListWithAuthorization:
         # - transaction is sent not by issuer but by relayer
         tx = token.addAccountWhiteListWithAuthorization(
             user_st.address,
-            user_sc.address,
+            user_sc_in.address,
+            user_sc_out.address,
             nonce,
             signature.v,
             signature.r,
@@ -585,7 +588,8 @@ class TestAddAccountWhiteListWithAuthorization:
 
         assert token.accountWhiteList(user_st.address) == (
             user_st.address,
-            user_sc.address,
+            user_sc_in.address,
+            user_sc_out.address,
             True,
         )
         assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_st.address
@@ -600,8 +604,10 @@ class TestAddAccountWhiteListWithAuthorization:
     def test_error_1_1(self, AuthIbetWST, users):
         admin = users["eoa1"]
         issuer_pk, issuer_addr = eip712_helper.generate_account()
-        user = users["eoa2"]
-        relayer = users["eoa3"]
+        user_st = users["eoa2"]
+        user_sc_in = users["eoa3"]
+        user_sc_out = users["eoa4"]
+        relayer = users["eoa5"]
 
         # deploy
         token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
@@ -612,8 +618,9 @@ class TestAddAccountWhiteListWithAuthorization:
         # generate add account whitelist digest
         digest = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
-            st_account_address=user.address,
-            sc_account_address=user.address,
+            st_account_address=user_st.address,
+            sc_account_address_in=user_sc_in.address,
+            sc_account_address_out=user_sc_out.address,
             nonce=nonce,
         )
 
@@ -625,7 +632,8 @@ class TestAddAccountWhiteListWithAuthorization:
         with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
             token.addAccountWhiteListWithAuthorization(
                 relayer.address,  # incorrect account address
-                user.address,
+                user_sc_in.address,
+                user_sc_out.address,
                 nonce,
                 signature.v,
                 signature.r,
@@ -653,7 +661,8 @@ class TestAddAccountWhiteListWithAuthorization:
         digest = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce,
         )
 
@@ -665,6 +674,7 @@ class TestAddAccountWhiteListWithAuthorization:
         # - transaction is sent not by issuer but by relayer
         with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
             token.addAccountWhiteListWithAuthorization(
+                user.address,
                 user.address,
                 user.address,
                 nonce,
@@ -692,7 +702,8 @@ class TestAddAccountWhiteListWithAuthorization:
         digest = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce,
         )
 
@@ -702,6 +713,7 @@ class TestAddAccountWhiteListWithAuthorization:
         # add account to whitelist with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
         token.addAccountWhiteListWithAuthorization(
+            user.address,
             user.address,
             user.address,
             nonce,
@@ -717,6 +729,7 @@ class TestAddAccountWhiteListWithAuthorization:
             f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce}"
         ):
             token.addAccountWhiteListWithAuthorization(
+                user.address,
                 user.address,
                 user.address,
                 nonce,
@@ -749,7 +762,8 @@ class TestDeleteAccountWhiteListWithAuthorization:
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce_1,
         )
 
@@ -759,6 +773,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         token.addAccountWhiteListWithAuthorization(
+            user.address,
             user.address,
             user.address,
             nonce_1,
@@ -800,6 +815,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         assert token.accountWhiteList(user.address) == (
             brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
             False,
         )
         assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
@@ -827,7 +843,8 @@ class TestDeleteAccountWhiteListWithAuthorization:
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce_1,
         )
 
@@ -837,6 +854,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         token.addAccountWhiteListWithAuthorization(
+            user.address,
             user.address,
             user.address,
             nonce_1,
@@ -891,7 +909,8 @@ class TestDeleteAccountWhiteListWithAuthorization:
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce_1,
         )
 
@@ -901,6 +920,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         token.addAccountWhiteListWithAuthorization(
+            user.address,
             user.address,
             user.address,
             nonce_1,
@@ -954,7 +974,8 @@ class TestDeleteAccountWhiteListWithAuthorization:
         digest_1 = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=user.address,
-            sc_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
             nonce=nonce_1,
         )
 
@@ -964,6 +985,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
         token.addAccountWhiteListWithAuthorization(
+            user.address,
             user.address,
             user.address,
             nonce_1,
@@ -1035,8 +1057,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1106,8 +1132,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1169,8 +1199,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1232,8 +1266,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1304,8 +1342,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1361,8 +1403,12 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1418,7 +1464,9 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1472,7 +1520,9 @@ class TestTransferWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1531,8 +1581,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1601,8 +1655,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1663,8 +1721,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1725,8 +1787,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1795,8 +1861,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1851,8 +1921,12 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1907,7 +1981,9 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(to_user_addr, to_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1960,7 +2036,9 @@ class TestReceiveWithAuthorization:
         token.mint(from_user_addr, 1000, {"from": issuer})
 
         # add accounts to whitelist
-        token.addAccountWhiteList(from_user_addr, from_user_addr, {"from": issuer})
+        token.addAccountWhiteList(
+            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -2006,11 +2084,13 @@ class TestRequestTradeWithAuthorization:
         issuer = users["eoa2"]
 
         seller_st_pk, seller_st_addr = eip712_helper.generate_account()
-        seller_sc = users["eoa3"]
+        seller_sc_in = users["eoa3"]
+        seller_sc_out = users["eoa4"]
         buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
-        buyer_sc = users["eoa4"]
+        buyer_sc_in = users["eoa5"]
+        buyer_sc_out = users["eoa6"]
 
-        relayer = users["eoa5"]
+        relayer = users["eoa7"]
 
         # deploy ST token
         st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
@@ -2020,9 +2100,14 @@ class TestRequestTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc_in.address,
+            seller_sc_out.address,
+            {"from": issuer},
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc_in.address, buyer_sc_out.address, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -2065,8 +2150,8 @@ class TestRequestTradeWithAuthorization:
             seller_st_addr,
             buyer_st_addr,
             sc_token.address,
-            seller_sc.address,
-            buyer_sc.address,
+            seller_sc_in.address,
+            buyer_sc_out.address,
             100,
             200,
             0,  # status (Pending)
@@ -2078,9 +2163,12 @@ class TestRequestTradeWithAuthorization:
         assert tx.events["TradeRequested"]["buyerSTAccountAddress"] == buyer_st_addr
         assert tx.events["TradeRequested"]["SCTokenAddress"] == sc_token.address
         assert (
-            tx.events["TradeRequested"]["sellerSCAccountAddress"] == seller_sc.address
+            tx.events["TradeRequested"]["sellerSCAccountAddress"]
+            == seller_sc_in.address
         )
-        assert tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert (
+            tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc_out.address
+        )
         assert tx.events["TradeRequested"]["STValue"] == 100
         assert tx.events["TradeRequested"]["SCValue"] == 200
 
@@ -2163,7 +2251,7 @@ class TestRequestTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
 
         # generate nonce
@@ -2225,9 +2313,11 @@ class TestRequestTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -2302,9 +2392,11 @@ class TestRequestTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -2370,9 +2462,11 @@ class TestCancelTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -2474,9 +2568,11 @@ class TestCancelTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -2568,9 +2664,11 @@ class TestCancelTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -2662,9 +2760,11 @@ class TestAcceptTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] SC: approve transfer
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
@@ -2770,9 +2870,11 @@ class TestAcceptTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] SC: approve transfer
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
@@ -2869,9 +2971,11 @@ class TestAcceptTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] SC: approve transfer
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
@@ -2959,9 +3063,11 @@ class TestAcceptTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] SC: approve transfer
         sc_token.approve(st_token.address, 200, {"from": buyer_sc})
@@ -3049,9 +3155,11 @@ class TestAcceptTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -3140,9 +3248,11 @@ class TestRejectTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -3242,9 +3352,11 @@ class TestRejectTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -3338,9 +3450,11 @@ class TestRejectTradeWithAuthorization:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, {"from": issuer}
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
         )
-        st_token.addAccountWhiteList(buyer_st_addr, buyer_sc.address, {"from": issuer})
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
 
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)

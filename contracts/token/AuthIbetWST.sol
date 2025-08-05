@@ -39,7 +39,7 @@ contract AuthIbetWST is IbetWST {
 
     bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
-            "AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddress,bytes32 nonce)"
+            "AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddressIn,address SCAccountAddressOut,bytes32 nonce)"
         );
 
     bytes32
@@ -217,15 +217,17 @@ contract AuthIbetWST is IbetWST {
     /// @dev
     ///   - Can be called by anyone
     ///   - Token owner must sign the authorization
-    /// @param STAccountAddress The address of the ST account to be added to the whitelist
-    /// @param SCAccountAddress The address of the SC account to be added to the whitelist
+    /// @param STAccountAddress ST account address
+    /// @param SCAccountAddressIn SC account address for deposits
+    /// @param SCAccountAddressOut SC account address for withdrawals
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
     /// @param r r value of the signature
     /// @param s s value of the signature
     function addAccountWhiteListWithAuthorization(
         address STAccountAddress,
-        address SCAccountAddress,
+        address SCAccountAddressIn,
+        address SCAccountAddressOut,
         bytes32 nonce,
         uint8 v,
         bytes32 r,
@@ -236,7 +238,8 @@ contract AuthIbetWST is IbetWST {
             abi.encode(
                 ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH,
                 STAccountAddress,
-                SCAccountAddress,
+                SCAccountAddressIn,
+                SCAccountAddressOut,
                 nonce
             )
         );
@@ -266,7 +269,8 @@ contract AuthIbetWST is IbetWST {
         // Add to whitelist
         accountWhiteList[STAccountAddress] = AccountWhiteList({
             STAccountAddress: STAccountAddress,
-            SCAccountAddress: SCAccountAddress,
+            SCAccountAddressIn: SCAccountAddressIn,
+            SCAccountAddressOut: SCAccountAddressOut,
             listed: true
         });
         // Emit event
@@ -575,9 +579,9 @@ contract AuthIbetWST is IbetWST {
         // Retrieve the SC account addresses from the whitelist
         address sellerSCAccountAddress = accountWhiteList[
             sellerSTAccountAddress
-        ].SCAccountAddress;
+        ].SCAccountAddressIn;
         address buyerSCAccountAddress = accountWhiteList[buyerSTAccountAddress]
-            .SCAccountAddress;
+            .SCAccountAddressOut;
         // Increment the index for trade requests
         _index++;
         // Create a new trade request

@@ -181,21 +181,23 @@ def generate_burn_digest(
 def generate_add_account_whitelist_digest(
     domain_separator: bytes,
     st_account_address: str,
-    sc_account_address: str,
+    sc_account_address_in: str,
+    sc_account_address_out: str,
     nonce: bytes,
 ) -> bytes:
     """
     Generate the EIP-712 digest for adding an account to the whitelist.
 
     :param domain_separator: EIP-712 DOMAIN_SEPARATOR
-    :param st_account_address: Address of the ST account to add to the whitelist
-    :param sc_account_address: Address of the SC account to add to the whitelist
+    :param st_account_address: ST account address
+    :param sc_account_address_in: SC account address for deposits
+    :param sc_account_address_out: SC account address for withdrawals
     :param nonce: Nonce for the operation, used to prevent replay attacks
     :return: EIP-712 digest for the add whitelist operation
     """
 
     type_hash = keccak(
-        text="AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddress,bytes32 nonce)"
+        text="AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddressIn,address SCAccountAddressOut,bytes32 nonce)"
     )
 
     struct_hash = keccak(
@@ -203,13 +205,15 @@ def generate_add_account_whitelist_digest(
             [
                 "bytes32",  # typeHash
                 "address",  # STAccountAddress
-                "address",  # SCAccountAddress
+                "address",  # SCAccountAddressIn
+                "address",  # SCAccountAddressOut
                 "bytes32",  # nonce
             ],
             [
                 type_hash,
                 to_checksum_address(st_account_address),
-                to_checksum_address(sc_account_address),
+                to_checksum_address(sc_account_address_in),
+                to_checksum_address(sc_account_address_out),
                 nonce,
             ],
         )
