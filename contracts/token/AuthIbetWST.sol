@@ -37,6 +37,11 @@ contract AuthIbetWST is IbetWST {
             "BurnWithAuthorization(address from,uint256 value,bytes32 nonce)"
         );
 
+    bytes32 public constant FORCE_BURN_FROM_WITH_AUTHORIZATION_TYPEHASH =
+        keccak256(
+            "ForceBurnFromWithAuthorization(address account,uint256 value,bytes32 nonce)"
+        );
+
     bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
         keccak256(
             "AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddressIn,address SCAccountAddressOut,bytes32 nonce)"
@@ -208,6 +213,63 @@ contract AuthIbetWST is IbetWST {
         // Burn the tokens from the specified address
         _burn(from, value);
         emit Burn(from, value);
+
+        return true;
+    }
+
+    // [FUNCTION]
+    /// @notice Force burn tokens from a specified account with authorization
+    /// @dev
+    ///   - Can be called by anyone
+    ///   - Token owner must sign the authorization
+    /// @param account The address from which to burn tokens
+    /// @param value The value of tokens to burn
+    /// @param nonce The authorization nonce for the transaction
+    /// @param v v value of the signature
+    /// @param r r value of the signature
+    /// @param s s value of the signature
+    function forceBurnFromWithAuthorization(
+        address account,
+        uint256 value,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (bool) {
+        // Calculate the structHash for the EIP-712 message
+        bytes32 structHash = keccak256(
+            abi.encode(
+                FORCE_BURN_FROM_WITH_AUTHORIZATION_TYPEHASH,
+                account,
+                value,
+                nonce
+            )
+        );
+        // Calculate the signature digest (0x1901 + DomainSeparator + structHash)
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+        // Verify the signature
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
+            // Throw an error if the signature does not match the token owner's address
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
+        }
+
+        // Ensure the nonce has not been used
+        if (usedNonces[recoveredAddress][nonce]) {
+            // Throw an error if the nonce has already been used
+            revert AuthIbetWSTErrors.AuthorizationNonceAlreadyUsed(
+                recoveredAddress,
+                nonce
+            );
+        }
+        // Mark the nonce as used and emit an event
+        usedNonces[recoveredAddress][nonce] = true;
+        emit AuthorizationUsed(recoveredAddress, nonce);
+        // Burn the tokens from the specified address
+        _burn(account, value);
+        emit Burn(account, value);
 
         return true;
     }

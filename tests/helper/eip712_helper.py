@@ -178,6 +178,59 @@ def generate_burn_digest(
     return digest
 
 
+def generate_force_burn_from_digest(
+    domain_separator: bytes,
+    account_address: str,
+    value: int,
+    nonce: bytes,
+) -> bytes:
+    """
+    Generate the EIP-712 digest for force burning tokens from an account with authorization.
+
+    :param domain_separator: EIP-712 DOMAIN_SEPARATOR
+    :param account_address: Address to force burn tokens from
+    :param value: Value of tokens to force burn
+    :param nonce: Nonce for the operation, used to prevent replay attacks
+    :return: EIP-712 digest for the force burn operation
+    """
+
+    type_hash = keccak(
+        text="ForceBurnFromWithAuthorization(address account,uint256 value,bytes32 nonce)"
+    )
+
+    struct_hash = keccak(
+        encode(
+            [
+                "bytes32",  # typeHash
+                "address",  # account
+                "uint256",  # value
+                "bytes32",  # nonce
+            ],
+            [
+                type_hash,
+                to_checksum_address(account_address),
+                value,
+                nonce,
+            ],
+        )
+    )
+    digest = keccak(
+        encode_packed(
+            [
+                "bytes2",  # EIP-712 prefix
+                "bytes32",  # domainSeparator
+                "bytes32",  # structHash
+            ],
+            [
+                "\x19\x01".encode(),
+                domain_separator,
+                struct_hash,
+            ],
+        )
+    )
+    return digest
+
+
 def generate_add_account_whitelist_digest(
     domain_separator: bytes,
     st_account_address: str,
