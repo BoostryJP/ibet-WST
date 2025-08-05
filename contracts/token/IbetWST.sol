@@ -189,7 +189,7 @@ contract IbetWST is IbetERC20 {
         address STAccountAddress,
         address SCAccountAddressIn,
         address SCAccountAddressOut
-    ) public onlyOwner returns (bool) {
+    ) external onlyOwner returns (bool) {
         // Add to whitelist
         accountWhiteList[STAccountAddress] = AccountWhiteList({
             STAccountAddress: STAccountAddress,
@@ -208,7 +208,7 @@ contract IbetWST is IbetERC20 {
     /// @param STAccountAddress The address of the ST account to be removed from the whitelist
     function deleteAccountWhiteList(
         address STAccountAddress
-    ) public onlyOwner returns (bool) {
+    ) external onlyOwner returns (bool) {
         // Remove from whitelist
         delete accountWhiteList[STAccountAddress];
         // Emit event
@@ -331,7 +331,7 @@ contract IbetWST is IbetERC20 {
         uint256 STValue,
         uint256 SCValue,
         string memory memo
-    ) public returns (bool) {
+    ) external returns (bool) {
         address sellerSTAccountAddress = _msgSender();
         // Check if the seller account is whitelisted
         if (accountWhiteList[sellerSTAccountAddress].listed == false) {
@@ -381,7 +381,7 @@ contract IbetWST is IbetERC20 {
     ///   - The trade request must be in the Pending state
     ///   - The caller must be the seller's ST account address of the trade request
     /// @param index The index of the trade request to be cancelled
-    function cancelTrade(uint256 index) public returns (bool) {
+    function cancelTrade(uint256 index) external returns (bool) {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
             revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
@@ -416,7 +416,7 @@ contract IbetWST is IbetERC20 {
     ///   - The trade request must be in the Pending state
     ///   - The caller must be the buyer's ST account address of the trade request
     /// @param index The index of the trade request to be accepted
-    function acceptTrade(uint256 index) public returns (bool) {
+    function acceptTrade(uint256 index) external returns (bool) {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
             revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
@@ -463,7 +463,7 @@ contract IbetWST is IbetERC20 {
     ///   - The trade request must be in the Pending state
     ///   - The caller must be the buyer's ST account address of the trade request
     /// @param index The index of the trade request to be rejected
-    function rejectTrade(uint256 index) public returns (bool) {
+    function rejectTrade(uint256 index) external returns (bool) {
         // Check if the trade request is acceptable
         if (_trades[index].state != State.Pending) {
             revert IbetWSTErrors.TradeRequestIsNotAcceptable(index);
