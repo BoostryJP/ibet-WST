@@ -53,20 +53,25 @@ class TestAddAccountWhiteList:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         user_1_st = users["eoa3"]
-        user_1_sc = users["eoa4"]
+        user_1_sc_in = users["eoa4"]
+        user_1_sc_out = users["eoa5"]
 
         # deploy
         token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add account to whitelist
         tx = token.addAccountWhiteList(
-            user_1_st.address, user_1_sc.address, {"from": issuer}
+            user_1_st.address,
+            user_1_sc_in.address,
+            user_1_sc_out.address,
+            {"from": issuer},
         )
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
             user_1_st.address,
-            user_1_sc.address,
+            user_1_sc_in.address,
+            user_1_sc_out.address,
             True,
         )
 
@@ -82,7 +87,8 @@ class TestAddAccountWhiteList:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         user_1_st = users["eoa3"]
-        user_1_sc = users["eoa4"]
+        user_1_sc_in = users["eoa4"]
+        user_1_sc_out = users["eoa5"]
 
         # deploy
         token = admin.deploy(IbetWST, "IbetWST", issuer.address)
@@ -92,7 +98,10 @@ class TestAddAccountWhiteList:
             f"OwnableUnauthorizedAccount: {user_1_st.address.lower()}"
         ):
             token.addAccountWhiteList(
-                user_1_st.address, user_1_sc.address, {"from": user_1_st}
+                user_1_st.address,
+                user_1_sc_in.address,
+                user_1_sc_out.address,
+                {"from": user_1_st},
             )
 
 
@@ -114,7 +123,7 @@ class TestDeleteAccountWhiteList:
 
         # add account to whitelist
         token.addAccountWhiteList(
-            user_1_st.address, user_1_sc.address, {"from": issuer}
+            user_1_st.address, user_1_sc.address, user_1_sc.address, {"from": issuer}
         )
 
         # delete account from whitelist
@@ -122,6 +131,7 @@ class TestDeleteAccountWhiteList:
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
+            brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
             False,
@@ -146,6 +156,7 @@ class TestDeleteAccountWhiteList:
         assert token.accountWhiteList(user_1_st.address) == (
             brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
             False,
         )
 
@@ -155,6 +166,7 @@ class TestDeleteAccountWhiteList:
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
+            brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
             brownie.ZERO_ADDRESS,
             False,
@@ -181,7 +193,7 @@ class TestDeleteAccountWhiteList:
 
         # add account to whitelist
         token.addAccountWhiteList(
-            user_1_st.address, user_1_sc.address, {"from": issuer}
+            user_1_st.address, user_1_sc.address, user_1_sc.address, {"from": issuer}
         )
 
         # add account to whitelist by non-owner
@@ -212,10 +224,16 @@ class TestTransfer:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
         token.addAccountWhiteList(
-            transfer_to.address, transfer_to.address, {"from": issuer}
+            transfer_to.address,
+            transfer_to.address,
+            transfer_to.address,
+            {"from": issuer},
         )
 
         # transfer
@@ -273,7 +291,10 @@ class TestTransfer:
 
         # add transfer_from to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
 
         # transfer
@@ -302,10 +323,16 @@ class TestTransfer:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
         token.addAccountWhiteList(
-            transfer_to.address, transfer_to.address, {"from": issuer}
+            transfer_to.address,
+            transfer_to.address,
+            transfer_to.address,
+            {"from": issuer},
         )
 
         # transfer
@@ -334,9 +361,14 @@ class TestTransfer:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
-        token.addAccountWhiteList(transfer_to, transfer_to, {"from": issuer})
+        token.addAccountWhiteList(
+            transfer_to, transfer_to, transfer_to, {"from": issuer}
+        )
 
         # transfer
         with brownie.reverts(revert_msg=f"ERC20InvalidReceiver: {transfer_to}"):
@@ -368,10 +400,16 @@ class TestTransferFrom:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
         token.addAccountWhiteList(
-            transfer_to.address, transfer_to.address, {"from": issuer}
+            transfer_to.address,
+            transfer_to.address,
+            transfer_to.address,
+            {"from": issuer},
         )
 
         # approve transfer
@@ -442,7 +480,10 @@ class TestTransferFrom:
 
         # add transfer_from to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
 
         # transferFrom
@@ -476,10 +517,16 @@ class TestTransferFrom:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
         token.addAccountWhiteList(
-            transfer_to.address, transfer_to.address, {"from": issuer}
+            transfer_to.address,
+            transfer_to.address,
+            transfer_to.address,
+            {"from": issuer},
         )
 
         # transfer
@@ -513,9 +560,14 @@ class TestTransferFrom:
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            transfer_from.address, transfer_from.address, {"from": issuer}
+            transfer_from.address,
+            transfer_from.address,
+            transfer_from.address,
+            {"from": issuer},
         )
-        token.addAccountWhiteList(transfer_to, transfer_to, {"from": issuer})
+        token.addAccountWhiteList(
+            transfer_to, transfer_to, transfer_to, {"from": issuer}
+        )
 
         # transferFrom
         with brownie.reverts(revert_msg=f"ERC20InvalidReceiver: {transfer_to}"):
@@ -537,9 +589,11 @@ class TestRequestTrade:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         seller_st = users["eoa3"]
-        seller_sc = users["eoa4"]
-        buyer_st = users["eoa5"]
-        buyer_sc = users["eoa6"]
+        seller_sc_in = users["eoa4"]
+        seller_sc_out = users["eoa5"]
+        buyer_st = users["eoa6"]
+        buyer_sc_in = users["eoa7"]
+        buyer_sc_out = users["eoa8"]
 
         # deploy ST token
         st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
@@ -549,10 +603,16 @@ class TestRequestTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc_in.address,
+            seller_sc_out.address,
+            {"from": issuer},
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc_in.address,
+            buyer_sc_out.address,
+            {"from": issuer},
         )
 
         # requestTrade
@@ -572,8 +632,8 @@ class TestRequestTrade:
             seller_st.address,
             buyer_st.address,
             sc_token.address,
-            seller_sc.address,
-            buyer_sc.address,
+            seller_sc_in.address,
+            buyer_sc_out.address,
             100,
             200,
             0,  # status (Pending)
@@ -587,9 +647,12 @@ class TestRequestTrade:
         assert tx.events["TradeRequested"]["buyerSTAccountAddress"] == buyer_st.address
         assert tx.events["TradeRequested"]["SCTokenAddress"] == sc_token.address
         assert (
-            tx.events["TradeRequested"]["sellerSCAccountAddress"] == seller_sc.address
+            tx.events["TradeRequested"]["sellerSCAccountAddress"]
+            == seller_sc_in.address
         )
-        assert tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert (
+            tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc_out.address
+        )
         assert tx.events["TradeRequested"]["STValue"] == 100
         assert tx.events["TradeRequested"]["SCValue"] == 200
 
@@ -611,10 +674,10 @@ class TestRequestTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade 1st time
@@ -715,7 +778,7 @@ class TestRequestTrade:
 
         # add ST account to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -754,10 +817,10 @@ class TestCancelTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -809,10 +872,10 @@ class TestCancelTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -841,16 +904,17 @@ class TestCancelTrade:
         seller_st = users["eoa3"]
         seller_sc = users["eoa4"]
         buyer_st = users["eoa5"]
+        buyer_sc = users["eoa6"]
 
         # deploy ST token
         st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, seller_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -896,10 +960,10 @@ class TestAcceptTrade:
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # ST: requestTrade
@@ -959,10 +1023,10 @@ class TestAcceptTrade:
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # ST: requestTrade
@@ -1005,10 +1069,10 @@ class TestAcceptTrade:
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # ST: requestTrade
@@ -1050,10 +1114,10 @@ class TestAcceptTrade:
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # ST: requestTrade
@@ -1095,10 +1159,10 @@ class TestAcceptTrade:
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # ST: requestTrade
@@ -1142,10 +1206,10 @@ class TestRejectTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -1193,10 +1257,10 @@ class TestRejectTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade
@@ -1232,10 +1296,10 @@ class TestRejectTrade:
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, {"from": issuer}
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
         # requestTrade

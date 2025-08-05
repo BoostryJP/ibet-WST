@@ -29,8 +29,9 @@ import {IbetWSTErrors} from "../utils/Errors.sol";
 contract IbetWST is IbetERC20 {
     /// Account whitelist structure
     struct AccountWhiteList {
-        address STAccountAddress; // Address of the ST account for settlement
-        address SCAccountAddress; // Address of the SC account for settlement
+        address STAccountAddress; // ST account address
+        address SCAccountAddressIn; // SC account address for deposits
+        address SCAccountAddressOut; // SC account address for withdrawals
         bool listed; // Whether the account is whitelisted
     }
 
@@ -181,16 +182,19 @@ contract IbetWST is IbetERC20 {
     // [FUNCTION]
     /// @notice Register an account to the whitelist
     /// @dev Only callable by the owner
-    /// @param STAccountAddress The address of the ST account to be whitelisted
-    /// @param SCAccountAddress The address of the SC account to be whitelisted
+    /// @param STAccountAddress ST account address
+    /// @param SCAccountAddressIn SC account address for deposits
+    /// @param SCAccountAddressOut SC account address for withdrawals
     function addAccountWhiteList(
         address STAccountAddress,
-        address SCAccountAddress
+        address SCAccountAddressIn,
+        address SCAccountAddressOut
     ) public onlyOwner returns (bool) {
         // Add to whitelist
         accountWhiteList[STAccountAddress] = AccountWhiteList({
             STAccountAddress: STAccountAddress,
-            SCAccountAddress: SCAccountAddress,
+            SCAccountAddressIn: SCAccountAddressIn,
+            SCAccountAddressOut: SCAccountAddressOut,
             listed: true
         });
         // Emit event
@@ -340,9 +344,9 @@ contract IbetWST is IbetERC20 {
         // Retrieve the SC account addresses from the whitelist
         address sellerSCAccountAddress = accountWhiteList[
             sellerSTAccountAddress
-        ].SCAccountAddress;
+        ].SCAccountAddressIn;
         address buyerSCAccountAddress = accountWhiteList[buyerSTAccountAddress]
-            .SCAccountAddress;
+            .SCAccountAddressOut;
         // Increment the index for trade requests
         _index++;
         // Create a new trade request
