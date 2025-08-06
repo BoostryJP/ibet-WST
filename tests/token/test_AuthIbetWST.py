@@ -3672,7 +3672,7 @@ class TestAcceptTradeWithAuthorization:
         # [ACCEPT-TRADE] sign the digest by buyer_st_addr
         signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
 
-        # [REQUEST-TRADE] request trade with authorization
+        # [ACCEPT-TRADE] request trade with authorization
         # - ERC20 transfer is reverted
         with brownie.reverts("SC token transfer did not succeed"):
             st_token.acceptTradeWithAuthorization(
