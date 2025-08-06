@@ -61,4 +61,13 @@ contract IbetERC20 is ERC20, Ownable {
         _burn(account, value);
         emit Burn(account, value);
     }
+
+    // [FUNCTION]
+    /// @notice Force burn tokens from a specified account (only callable by the owner)
+    /// @param account The address from which to burn tokens
+    /// @param value The value of tokens to burn
+    function forceBurnFrom(address account, uint256 value) external onlyOwner {
+        _burn(account, value);
+        emit Burn(account, value);
+    }
 }

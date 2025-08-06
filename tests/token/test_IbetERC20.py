@@ -203,3 +203,78 @@ class TestBurnFrom:
             revert_msg=f"ERC20InsufficientAllowance: {user_2.address.lower()}, 0, 5"
         ):
             token.burnFrom(user_1.address, 5, {"from": user_2})
+
+
+class TestForceBurnFrom:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    # - Check that the owner can force burn tokens from any user
+    def test_normal_1(self, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        user_1 = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+
+        # mint
+        token.mint(user_1.address, 10, {"from": issuer})
+
+        # forceBurnFrom
+        tx = token.forceBurnFrom(user_1.address, 5, {"from": issuer})
+
+        # assertion
+        assert token.name() == "IbetERC20"
+        assert token.symbol() == ""
+        assert token.decimals() == 18
+        assert token.totalSupply() == 5
+        assert token.balanceOf(user_1.address) == 5
+
+        assert tx.events["Burn"]["from"] == user_1.address
+        assert tx.events["Burn"]["value"] == 5
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1
+    # - Check that only the owner can force burn tokens from any user
+    def test_error_1(self, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        user_1 = users["eoa3"]
+        other = users["eoa4"]
+
+        # deploy
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+
+        # mint
+        token.mint(user_1.address, 10, {"from": issuer})
+
+        # forceBurnFrom
+        with brownie.reverts(
+            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
+        ):
+            token.forceBurnFrom(user_1.address, 5, {"from": other})
+
+    # Error_2
+    # - Check that the owner cannot force burn more tokens than the user holds
+    def test_error_2(self, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        user_1 = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+
+        # mint
+        token.mint(user_1.address, 10, {"from": issuer})
+
+        # forceBurnFrom
+        with brownie.reverts(
+            revert_msg=f"ERC20InsufficientBalance: {user_1.address.lower()}, 10, 11"
+        ):
+            token.forceBurnFrom(user_1.address, 11, {"from": issuer})
