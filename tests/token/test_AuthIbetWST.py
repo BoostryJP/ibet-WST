@@ -3138,9 +3138,6 @@ class TestAcceptTradeWithAuthorization:
             buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
-        # [REQUEST-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
-
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
 
@@ -3174,6 +3171,9 @@ class TestAcceptTradeWithAuthorization:
             signature_1.s,
             {"from": relayer},
         )
+
+        # [ACCEPT-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3248,9 +3248,6 @@ class TestAcceptTradeWithAuthorization:
             buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
-        # [REQUEST-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
-
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
 
@@ -3284,6 +3281,9 @@ class TestAcceptTradeWithAuthorization:
             signature_1.s,
             {"from": relayer},
         )
+
+        # [ACCEPT-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3349,9 +3349,6 @@ class TestAcceptTradeWithAuthorization:
             buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
-        # [REQUEST-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
-
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
 
@@ -3385,6 +3382,9 @@ class TestAcceptTradeWithAuthorization:
             signature_1.s,
             {"from": relayer},
         )
+
+        # [ACCEPT-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3441,9 +3441,6 @@ class TestAcceptTradeWithAuthorization:
             buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
         )
 
-        # [REQUEST-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
-
         # [REQUEST-TRADE] generate nonce
         nonce_1 = secrets.token_bytes(32)
 
@@ -3477,6 +3474,9 @@ class TestAcceptTradeWithAuthorization:
             signature_1.s,
             {"from": relayer},
         )
+
+        # [ACCEPT-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3592,6 +3592,101 @@ class TestAcceptTradeWithAuthorization:
                 signature_2.s,
                 {"from": relayer},
             )
+
+    # Error_5
+    # - SC token transfer did not succeed
+    # - This is a case where the SC token is not a valid ERC20 token
+    def test_error_5(self, AuthIbetWST, MockERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+
+        seller_st_pk, seller_st_addr = eip712_helper.generate_account()
+        seller_sc = users["eoa3"]
+        buyer_st_pk, buyer_st_addr = eip712_helper.generate_account()
+        buyer_sc = users["eoa4"]
+
+        relayer = users["eoa5"]
+
+        # deploy ST token
+        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token.mint(seller_st_addr, 100, {"from": issuer})
+
+        # deploy SC token (Fake ERC20)
+        sc_token = admin.deploy(MockERC20, "IbetERC20", issuer.address)
+        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+
+        # add ST accounts to whitelist
+        st_token.addAccountWhiteList(
+            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+        )
+        st_token.addAccountWhiteList(
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
+
+        # [REQUEST-TRADE] generate nonce
+        nonce_1 = secrets.token_bytes(32)
+
+        # [REQUEST-TRADE] generate request trade digest
+        digest_1 = eip712_helper.generate_request_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(),
+            seller_st_account_address=seller_st_addr,
+            buyer_st_account_address=buyer_st_addr,
+            sc_token_address=sc_token.address,
+            st_value=100,
+            sc_value=200,
+            memo="trade_memo",
+            nonce=nonce_1,
+        )
+
+        # [REQUEST-TRADE] sign the digest by seller_st_addr
+        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+
+        # [REQUEST-TRADE] request trade with authorization
+        # - transaction is sent not by seller_st_addr but by relayer
+        st_token.requestTradeWithAuthorization(
+            seller_st_addr,
+            buyer_st_addr,
+            sc_token.address,
+            100,  # st_value
+            200,  # sc_value
+            "trade_memo",
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [ACCEPT-TRADE] SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+
+        # [ACCEPT-TRADE] generate nonce
+        nonce_2 = secrets.token_bytes(32)
+
+        # [ACCEPT-TRADE] generate request trade digest
+        index = st_token.getNbTrades()
+        digest_2 = eip712_helper.generate_accept_trade_digest(
+            domain_separator=st_token.DOMAIN_SEPARATOR(), index=index, nonce=nonce_2
+        )
+
+        # [ACCEPT-TRADE] sign the digest by buyer_st_addr
+        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+
+        # [ACCEPT-TRADE] request trade with authorization
+        # - ERC20 transfer is reverted
+        with brownie.reverts("SC token transfer did not succeed"):
+            st_token.acceptTradeWithAuthorization(
+                index,
+                nonce_2,
+                signature_2.v,
+                signature_2.r,
+                signature_2.s,
+                {"from": relayer},
+            )
+
+        # assertion
+        assert st_token.balanceOf(seller_st_addr) == 100
+        assert st_token.balanceOf(buyer_st_addr) == 0
 
 
 class TestRejectTradeWithAuthorization:
