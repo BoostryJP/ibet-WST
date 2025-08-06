@@ -1187,6 +1187,8 @@ class TestAcceptTrade:
             st_token.acceptTrade(1, {"from": buyer_st})
 
     # Error_5
+    # - SC token transfer did not succeed
+    # - This is a case where the SC token is not a valid ERC20 token
     def test_error_5(self, IbetWST, MockERC20, users):
         admin = users["eoa1"]
         issuer = users["eoa2"]
