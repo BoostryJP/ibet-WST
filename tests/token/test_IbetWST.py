@@ -1186,6 +1186,52 @@ class TestAcceptTrade:
         ):
             st_token.acceptTrade(1, {"from": buyer_st})
 
+    # Error_5
+    def test_error_5(self, IbetWST, MockERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        seller_st = users["eoa3"]
+        seller_sc = users["eoa4"]
+        buyer_st = users["eoa5"]
+        buyer_sc = users["eoa6"]
+
+        # deploy ST token & mint seller balance
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token.mint(seller_st.address, 100, {"from": issuer})
+
+        # deploy SC token (Fake ERC20) & mint buyer balance
+        sc_token = admin.deploy(MockERC20, "IbetERC20", issuer.address)
+        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+
+        # ST: add ST accounts to whitelist
+        st_token.addAccountWhiteList(
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+        )
+        st_token.addAccountWhiteList(
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
+
+        # ST: requestTrade
+        st_token.requestTrade(
+            buyer_st.address,
+            sc_token.address,
+            100,  # ST value
+            200,  # SC value
+            "trade_memo",
+            {"from": seller_st},
+        )
+
+        # SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+
+        # ST: acceptTrade
+        with brownie.reverts("SC token transfer did not succeed"):
+            st_token.acceptTrade(1, {"from": buyer_st})
+
+        # assertion
+        assert st_token.balanceOf(seller_st.address) == 100
+        assert st_token.balanceOf(buyer_st.address) == 0
+
 
 class TestRejectTrade:
     ##########################################################

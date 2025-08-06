@@ -18,9 +18,11 @@
  */
 pragma solidity ^0.8.23;
 
-import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.sol";
+import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IbetERC20} from "./IbetERC20.sol";
 import {IbetWSTErrors} from "../utils/Errors.sol";
+
+using SafeERC20 for IERC20;
 
 /// @title ibet WST (Worldwide Settlement Token)
 /// @dev
@@ -438,10 +440,21 @@ contract IbetWST is IbetERC20 {
             _trades[index].STValue
         );
         // SC token transfer from buyer's SC account to seller's SC account
-        ERC20(_trades[index].SCTokenAddress).transferFrom(
+        IERC20 SCToken = IERC20(_trades[index].SCTokenAddress);
+        uint256 beforeBalance = SCToken.balanceOf(
+            _trades[index].sellerSCAccountAddress
+        );
+        SCToken.safeTransferFrom(
             _trades[index].buyerSCAccountAddress,
             _trades[index].sellerSCAccountAddress,
             _trades[index].SCValue
+        );
+        uint256 afterBalance = SCToken.balanceOf(
+            _trades[index].sellerSCAccountAddress
+        );
+        require(
+            afterBalance >= beforeBalance + _trades[index].SCValue,
+            "SC token transfer did not succeed"
         );
         // Emit the TradeAccepted event
         emit TradeAccepted(
