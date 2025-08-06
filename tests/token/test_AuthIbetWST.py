@@ -3669,7 +3669,7 @@ class TestAcceptTradeWithAuthorization:
             domain_separator=st_token.DOMAIN_SEPARATOR(), index=index, nonce=nonce_2
         )
 
-        # [REQUEST-TRADE] sign the digest by buyer_st_addr
+        # [ACCEPT-TRADE] sign the digest by buyer_st_addr
         signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
