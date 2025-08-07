@@ -36,7 +36,7 @@ class TestDeploy:
         # assertion
         assert token.owner() == issuer.address
         assert token.name() == "IbetERC20"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 18
         assert token.totalSupply() == 0
         assert token.balanceOf(issuer.address) == 0
@@ -61,7 +61,7 @@ class TestMint:
 
         # assertion
         assert token.name() == "IbetERC20"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 18
         assert token.totalSupply() == 10
         assert token.balanceOf(issuer.address) == 10
@@ -113,7 +113,7 @@ class TestBurn:
 
         # assertion
         assert token.name() == "IbetERC20"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 18
         assert token.totalSupply() == 0
         assert token.balanceOf(user_1.address) == 0
@@ -172,7 +172,7 @@ class TestBurnFrom:
 
         # assertion
         assert token.name() == "IbetERC20"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 18
         assert token.totalSupply() == 5
         assert token.balanceOf(user_1.address) == 5
@@ -228,7 +228,7 @@ class TestForceBurnFrom:
 
         # assertion
         assert token.name() == "IbetERC20"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 18
         assert token.totalSupply() == 5
         assert token.balanceOf(user_1.address) == 5
