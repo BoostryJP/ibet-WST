@@ -36,7 +36,7 @@ class TestDeploy:
         # assertion
         assert token.owner() == issuer.address
         assert token.name() == "IbetWST"
-        assert token.symbol() == ""
+        assert token.symbol() == "IWST"
         assert token.decimals() == 0
         assert token.totalSupply() == 0
         assert token.balanceOf(issuer.address) == 0
