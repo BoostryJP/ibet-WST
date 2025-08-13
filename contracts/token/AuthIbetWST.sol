@@ -824,10 +824,23 @@ contract AuthIbetWST is IbetWST {
         uint256 afterBalance = SCToken.balanceOf(
             _trades[index].sellerSCAccountAddress
         );
-        require(
-            afterBalance >= beforeBalance + _trades[index].SCValue,
-            "SC token transfer did not succeed"
-        );
+        // Check if the SC token transfer was successful
+        if (
+            _trades[index].sellerSCAccountAddress !=
+            _trades[index].buyerSCAccountAddress
+        ) {
+            // If the seller and buyer SC accounts are different, check the balance
+            require(
+                afterBalance >= beforeBalance + _trades[index].SCValue,
+                "SC token transfer did not succeed"
+            );
+        } else {
+            // If the seller and buyer SC accounts are the same, balance should not change
+            require(
+                afterBalance == beforeBalance,
+                "SC token transfer did not succeed"
+            );
+        }
         // Emit the TradeAccepted event
         emit TradeAccepted(
             index,

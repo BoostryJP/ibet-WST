@@ -999,6 +999,69 @@ class TestAcceptTrade:
         assert tx.events["TradeAccepted"]["STValue"] == 100
         assert tx.events["TradeAccepted"]["SCValue"] == 200
 
+    # Normal_2
+    # - Check that the acceptTrade is successful with same seller and buyer SC accounts
+    def test_normal_2(self, IbetWST, IbetERC20, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        seller_st = users["eoa3"]
+        seller_sc = users["eoa4"]
+        buyer_st = users["eoa5"]
+        buyer_sc = seller_sc  # Reusing seller_sc as buyer_sc for this test
+
+        # deploy ST token & mint seller balance
+        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token.mint(seller_st.address, 100, {"from": issuer})
+
+        # deploy SC token & mint buyer balance
+        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+
+        # ST: add ST accounts to whitelist
+        st_token.addAccountWhiteList(
+            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+        )
+        st_token.addAccountWhiteList(
+            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+        )
+
+        # ST: requestTrade
+        st_token.requestTrade(
+            buyer_st.address,
+            sc_token.address,
+            100,  # ST value
+            200,  # SC value
+            "trade_memo",
+            {"from": seller_st},
+        )
+
+        # SC: approve transfer
+        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+
+        # ST: acceptTrade
+        tx = st_token.acceptTrade(1, {"from": buyer_st})
+
+        # assertion
+        assert st_token.getTrade(1)[7] == 1  # status (Executed)
+
+        assert st_token.balanceOf(seller_st.address) == 0
+        assert st_token.balanceOf(buyer_st.address) == 100
+        assert (
+            sc_token.balanceOf(seller_sc.address) == 200
+        )  # seller_sc is same as buyer_sc
+        assert (
+            sc_token.balanceOf(buyer_sc.address) == 200
+        )  # buyer_sc is same as seller_sc
+
+        assert tx.events["TradeAccepted"]["index"] == 1
+        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st.address
+        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st.address
+        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
+        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
+        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
+        assert tx.events["TradeAccepted"]["STValue"] == 100
+        assert tx.events["TradeAccepted"]["SCValue"] == 200
+
     ##########################################################
     # Error
     ##########################################################
