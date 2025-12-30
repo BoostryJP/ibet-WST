@@ -17,7 +17,7 @@ ibet-WST (ibet Worldwide Settlement Token) is a protocol that bridges security t
 
 ### DVP
 
-<img width="1309" height="837" alt="image" src="https://github.com/user-attachments/assets/93b7a396-3fb3-49d8-bb8b-8bef52d36990" />
+<img width="1309" height="837" alt="image" src="https://github.com/user-attachments/assets/1c6c29ee-5ca1-4c2a-a988-25f7bb14086b" />
 
 ## Install & Setup
 
