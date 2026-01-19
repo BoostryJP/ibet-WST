@@ -9,6 +9,11 @@ updates:
     allow:
     - dependency-name: "*"
       dependency-type: "direct"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -18,6 +23,11 @@ updates:
     allow:
     - dependency-name: "*"
       dependency-type: "direct"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -25,3 +35,7 @@ updates:
     allow:
     - dependency-name: "*"
       dependency-type: "direct"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
