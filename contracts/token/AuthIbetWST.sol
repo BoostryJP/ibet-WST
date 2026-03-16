@@ -29,56 +29,63 @@ contract AuthIbetWST is IbetWST {
     // Constant for EIP-712 Domain
     bytes32 public DOMAIN_SEPARATOR;
 
-    bytes32 public constant MINT_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
-            "MintWithAuthorization(address to,uint256 value,bytes32 nonce)"
-        );
+    bytes32 public constant MINT_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "MintWithAuthorization(address to,uint256 value,bytes32 nonce)"
+    );
 
-    bytes32 public constant BURN_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
-            "BurnWithAuthorization(address from,uint256 value,bytes32 nonce)"
-        );
+    bytes32 public constant BURN_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "BurnWithAuthorization(address from,uint256 value,bytes32 nonce)"
+    );
 
-    bytes32 public constant FORCE_BURN_FROM_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
+    bytes32
+        public
+        constant FORCE_BURN_FROM_WITH_AUTHORIZATION_TYPEHASH = keccak256(
             "ForceBurnFromWithAuthorization(address account,uint256 value,bytes32 nonce)"
         );
 
-    bytes32 public constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
+    bytes32
+        public
+        constant ADD_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH = keccak256(
             "AddAccountWhiteListWithAuthorization(address STAccountAddress,address SCAccountAddressIn,address SCAccountAddressOut,bytes32 nonce)"
         );
 
     bytes32
         public
-        constant DELETE_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH =
-            keccak256(
-                "DeleteAccountWhiteListWithAuthorization(address STAccountAddress,bytes32 nonce)"
-            );
-
-    bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
-            "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+        constant DELETE_ACCOUNT_WHITELIST_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+            "DeleteAccountWhiteListWithAuthorization(address STAccountAddress,bytes32 nonce)"
         );
 
-    bytes32 public constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
-            "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
-        );
+    bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
 
-    bytes32 public constant REQUEST_TRADE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256(
+    bytes32 public constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
+
+    bytes32
+        public
+        constant REQUEST_TRADE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
             "RequestTradeWithAuthorization(address sellerSTAccountAddress,address buyerSTAccountAddress,address SCTokenAddress,uint256 STValue,uint256 SCValue,string memory memo,bytes32 nonce)"
         );
 
-    bytes32 public constant CANCEL_TRADE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256("CancelTradeWithAuthorization(uint256 index,bytes32 nonce)");
+    bytes32
+        public
+        constant CANCEL_TRADE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+            "CancelTradeWithAuthorization(uint256 index,bytes32 nonce)"
+        );
 
-    bytes32 public constant ACCEPT_TRADE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256("AcceptTradeWithAuthorization(uint256 index,bytes32 nonce)");
+    bytes32
+        public
+        constant ACCEPT_TRADE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+            "AcceptTradeWithAuthorization(uint256 index,bytes32 nonce)"
+        );
 
-    bytes32 public constant REJECT_TRADE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256("RejectTradeWithAuthorization(uint256 index,bytes32 nonce)");
+    bytes32
+        public
+        constant REJECT_TRADE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+            "RejectTradeWithAuthorization(uint256 index,bytes32 nonce)"
+        );
 
     // Mapping to manage the usage status of authorization nonces
     mapping(address => mapping(bytes32 => bool)) public usedNonces;
