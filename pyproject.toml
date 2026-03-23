@@ -1,21 +1,20 @@
 [project]
 name = "ibet-WST"
-version = "25.6"
+version = "26.3"
 authors = [
     {name = "BOOSTRY Co., Ltd.", email = "dev@boostry.co.jp"},
 ]
 license = {text = "Apache License, Version 2.0"}
-requires-python = "==3.11.11"
+requires-python = "==3.13.*"
 dependencies = [
     "coincurve~=21.0.0",
-    "eth-brownie~=1.20.3",
-    "eth-abi~=5.0.0",
-    "eth-utils~=2.3.1"
+    "eth-brownie~=1.21.0",
+    "setuptools<81",
 ]
 description = "ibet Worldwide Settlement Token (WST) contract"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pre-commit<4.0.0,>=3.6.0",
     "ruff<1.0.0,>=0.11.13",
 ]
@@ -23,7 +22,7 @@ dev-dependencies = [
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py311"
+target-version = "py313"
 exclude = [".venv/*"]
 
 [tool.ruff.format]
