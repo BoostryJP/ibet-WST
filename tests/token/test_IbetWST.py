@@ -203,7 +203,7 @@ class TestAddAccountWhiteList:
         # deploy
         token = admin.deploy(IbetWST, "IbetWST", issuer.address)
 
-        # add account to whitelist by non-owner
+        # add account to whitelist by non-owner or non-delegated account manager
         with brownie.reverts(
             revert_msg=(
                 f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"
@@ -348,7 +348,7 @@ class TestDeleteAccountWhiteList:
             user_1_st.address, user_1_sc.address, user_1_sc.address, {"from": issuer}
         )
 
-        # add account to whitelist by non-owner
+        # add account to whitelist by non-owner or non-delegated account manager
         with brownie.reverts(
             revert_msg=(
                 f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"

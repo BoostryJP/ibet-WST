@@ -51,13 +51,13 @@ contract IbetWST is IbetERC20 {
 
     // [EVENT]
     /// @notice Event emitted when an account is added to the whitelist
-    /// @dev Triggered when the owner adds an account to the whitelist
+    /// @dev Triggered when the owner or a delegated account manager adds an account to the whitelist
     /// @param accountAddress The address of the account added to the whitelist
     event AccountWhiteListAdded(address indexed accountAddress);
 
     // [EVENT]
     /// @notice Event emitted when an account is removed from the whitelist
-    /// @dev Triggered when the owner removes an account from the whitelist
+    /// @dev Triggered when the owner or a delegated account manager removes an account from the whitelist
     /// @param accountAddress The address of the account removed from the whitelist
     event AccountWhiteListDeleted(address indexed accountAddress);
 
