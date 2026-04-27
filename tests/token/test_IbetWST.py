@@ -42,6 +42,72 @@ class TestDeploy:
         assert token.balanceOf(issuer.address) == 0
 
 
+class TestSetAccountManager:
+    ##########################################################
+    # Normal
+    ##########################################################
+
+    # Normal_1
+    # - Check that the owner can enable and disable an account manager
+    def test_normal_1(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager = users["eoa3"]
+
+        # deploy
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # enable account manager
+        tx_enable = token.setAccountManager(
+            account_manager.address,
+            True,
+            {"from": issuer},
+        )
+
+        # disable account manager
+        tx_disable = token.setAccountManager(
+            account_manager.address,
+            False,
+            {"from": issuer},
+        )
+
+        # assertion
+        assert tx_enable.events["AccountManagerUpdated"]["accountManager"] == (
+            account_manager.address
+        )
+        assert tx_enable.events["AccountManagerUpdated"]["enabled"] is True
+        assert tx_disable.events["AccountManagerUpdated"]["accountManager"] == (
+            account_manager.address
+        )
+        assert tx_disable.events["AccountManagerUpdated"]["enabled"] is False
+        assert token.accountManagers(account_manager.address) is False
+
+    ##########################################################
+    # Error
+    ##########################################################
+
+    # Error_1
+    # - Check that a non-owner cannot update an account manager
+    def test_error_1(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager = users["eoa3"]
+        other = users["eoa4"]
+
+        # deploy
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # update account manager by non-owner
+        with brownie.reverts(
+            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
+        ):
+            token.setAccountManager(
+                account_manager.address,
+                True,
+                {"from": other},
+            )
+
+
 class TestAddAccountWhiteList:
     ##########################################################
     # Normal
@@ -77,6 +143,50 @@ class TestAddAccountWhiteList:
 
         assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_1_st.address
 
+    # Normal_2
+    # - Check that a delegated account manager can add an account to the whitelist
+    def test_normal_2(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager = users["eoa3"]
+        user_1_st = users["eoa4"]
+        user_1_sc_in = users["eoa5"]
+        user_1_sc_out = users["eoa6"]
+
+        # deploy
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # delegate whitelist management
+        tx_delegate = token.setAccountManager(
+            account_manager.address,
+            True,
+            {"from": issuer},
+        )
+
+        # add account to whitelist by delegated account manager
+        tx_add = token.addAccountWhiteList(
+            user_1_st.address,
+            user_1_sc_in.address,
+            user_1_sc_out.address,
+            {"from": account_manager},
+        )
+
+        # assertion
+        assert token.accountManagers(account_manager.address) is True
+        assert tx_delegate.events["AccountManagerUpdated"]["accountManager"] == (
+            account_manager.address
+        )
+        assert tx_delegate.events["AccountManagerUpdated"]["enabled"] is True
+        assert token.accountWhiteList(user_1_st.address) == (
+            user_1_st.address,
+            user_1_sc_in.address,
+            user_1_sc_out.address,
+            True,
+        )
+        assert tx_add.events["AccountWhiteListAdded"]["accountAddress"] == (
+            user_1_st.address
+        )
+
     ##########################################################
     # Error
     ##########################################################
@@ -95,7 +205,9 @@ class TestAddAccountWhiteList:
 
         # add account to whitelist by non-owner
         with brownie.reverts(
-            f"OwnableUnauthorizedAccount: {user_1_st.address.lower()}"
+            revert_msg=(
+                f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"
+            )
         ):
             token.addAccountWhiteList(
                 user_1_st.address,
@@ -176,6 +288,46 @@ class TestDeleteAccountWhiteList:
             tx.events["AccountWhiteListDeleted"]["accountAddress"] == user_1_st.address
         )
 
+    # Normal_3
+    # - Check that a delegated account manager can delete an account from the whitelist
+    def test_normal_3(self, IbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager = users["eoa3"]
+        user_1_st = users["eoa4"]
+        user_1_sc = users["eoa5"]
+
+        # deploy
+        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+
+        # delegate whitelist management
+        token.setAccountManager(account_manager.address, True, {"from": issuer})
+
+        # add account to whitelist
+        token.addAccountWhiteList(
+            user_1_st.address,
+            user_1_sc.address,
+            user_1_sc.address,
+            {"from": account_manager},
+        )
+
+        # delete account from whitelist by delegated account manager
+        tx = token.deleteAccountWhiteList(
+            user_1_st.address,
+            {"from": account_manager},
+        )
+
+        # assertion
+        assert token.accountWhiteList(user_1_st.address) == (
+            brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
+            False,
+        )
+        assert (
+            tx.events["AccountWhiteListDeleted"]["accountAddress"] == user_1_st.address
+        )
+
     ##########################################################
     # Error
     ##########################################################
@@ -198,7 +350,9 @@ class TestDeleteAccountWhiteList:
 
         # add account to whitelist by non-owner
         with brownie.reverts(
-            f"OwnableUnauthorizedAccount: {user_1_st.address.lower()}"
+            revert_msg=(
+                f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"
+            )
         ):
             token.deleteAccountWhiteList(user_1_st.address, {"from": user_1_st})
 
