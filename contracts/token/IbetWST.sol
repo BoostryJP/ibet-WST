@@ -16,7 +16,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.34;
 
 import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IbetERC20} from "./IbetERC20.sol";
@@ -37,18 +37,27 @@ contract IbetWST is IbetERC20 {
         bool listed; // Whether the account is whitelisted
     }
 
+    /// Accounts delegated by the owner to manage the whitelist
+    mapping(address => bool) public accountManagers;
+
     /// Account whitelist
     mapping(address => AccountWhiteList) public accountWhiteList;
 
     // [EVENT]
+    /// @notice Event emitted when an account manager is updated
+    /// @param accountManager The delegated account manager
+    /// @param enabled Whether the delegated account manager is enabled
+    event AccountManagerUpdated(address indexed accountManager, bool enabled);
+
+    // [EVENT]
     /// @notice Event emitted when an account is added to the whitelist
-    /// @dev Triggered when the owner adds an account to the whitelist
+    /// @dev Triggered when the owner or a delegated account manager adds an account to the whitelist
     /// @param accountAddress The address of the account added to the whitelist
     event AccountWhiteListAdded(address indexed accountAddress);
 
     // [EVENT]
     /// @notice Event emitted when an account is removed from the whitelist
-    /// @dev Triggered when the owner removes an account from the whitelist
+    /// @dev Triggered when the owner or a delegated account manager removes an account from the whitelist
     /// @param accountAddress The address of the account removed from the whitelist
     event AccountWhiteListDeleted(address indexed accountAddress);
 
@@ -174,6 +183,14 @@ contract IbetWST is IbetERC20 {
         address initialOwner
     ) IbetERC20(name, initialOwner) {}
 
+    modifier onlyAccountWhiteListManager() {
+        address sender = _msgSender();
+        if (sender != owner() && accountManagers[sender] == false) {
+            revert IbetWSTErrors.AccountWhiteListOperationNotPermitted(sender);
+        }
+        _;
+    }
+
     // [FUNCTION]
     /// @notice Get the number of decimals for the token
     /// @dev Returns 0 as this token does not have decimals
@@ -182,8 +199,22 @@ contract IbetWST is IbetERC20 {
     }
 
     // [FUNCTION]
-    /// @notice Register an account to the whitelist
+    /// @notice Delegate whitelist management to an account manager
     /// @dev Only callable by the owner
+    /// @param accountManager The delegated account manager address
+    /// @param enabled Whether the delegated account manager is enabled
+    function setAccountManager(
+        address accountManager,
+        bool enabled
+    ) external onlyOwner returns (bool) {
+        accountManagers[accountManager] = enabled;
+        emit AccountManagerUpdated(accountManager, enabled);
+        return true;
+    }
+
+    // [FUNCTION]
+    /// @notice Register an account to the whitelist
+    /// @dev Callable by the owner or a delegated account manager
     /// @param STAccountAddress ST account address
     /// @param SCAccountAddressIn SC account address for deposits
     /// @param SCAccountAddressOut SC account address for withdrawals
@@ -191,7 +222,7 @@ contract IbetWST is IbetERC20 {
         address STAccountAddress,
         address SCAccountAddressIn,
         address SCAccountAddressOut
-    ) external onlyOwner returns (bool) {
+    ) external onlyAccountWhiteListManager returns (bool) {
         // Add to whitelist
         accountWhiteList[STAccountAddress] = AccountWhiteList({
             STAccountAddress: STAccountAddress,
@@ -206,11 +237,11 @@ contract IbetWST is IbetERC20 {
 
     // [FUNCTION]
     /// @notice Remove an account from the whitelist
-    /// @dev Only callable by the owner
+    /// @dev Callable by the owner or a delegated account manager
     /// @param STAccountAddress The address of the ST account to be removed from the whitelist
     function deleteAccountWhiteList(
         address STAccountAddress
-    ) external onlyOwner returns (bool) {
+    ) external onlyAccountWhiteListManager returns (bool) {
         // Remove from whitelist
         delete accountWhiteList[STAccountAddress];
         // Emit event

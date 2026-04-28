@@ -16,11 +16,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.34;
 
 import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IbetWST} from "./IbetWST.sol";
-import {AuthIbetWSTErrors} from "../utils/Errors.sol";
+import {AuthIbetWSTErrors, IbetWSTErrors} from "../utils/Errors.sol";
 
 using SafeERC20 for IERC20;
 
@@ -121,6 +121,27 @@ contract AuthIbetWST is IbetWST {
                 address(this)
             )
         );
+    }
+
+    // [INTERNAL-FUNCTION]
+    /// @notice Validate the signer for whitelist authorization operations
+    /// @dev The signer must be the owner or a delegated account manager
+    /// @param recoveredAddress The recovered signer address
+    function _authorizeWhiteListOperation(
+        address recoveredAddress
+    ) internal view returns (address) {
+        if (recoveredAddress == address(0)) {
+            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
+        }
+        if (
+            recoveredAddress != owner() &&
+            accountManagers[recoveredAddress] == false
+        ) {
+            revert IbetWSTErrors.AccountWhiteListOperationNotPermitted(
+                recoveredAddress
+            );
+        }
+        return recoveredAddress;
     }
 
     // [FUNCTION]
@@ -287,7 +308,7 @@ contract AuthIbetWST is IbetWST {
     /// @notice Add an account to the whitelist with authorization
     /// @dev
     ///   - Can be called by anyone
-    ///   - Token owner must sign the authorization
+    ///   - Token owner or delegated account manager must sign the authorization
     /// @param STAccountAddress ST account address
     /// @param SCAccountAddressIn SC account address for deposits
     /// @param SCAccountAddressOut SC account address for withdrawals
@@ -320,10 +341,7 @@ contract AuthIbetWST is IbetWST {
         );
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
-        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the token owner's address
-            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
-        }
+        recoveredAddress = _authorizeWhiteListOperation(recoveredAddress);
 
         // Ensure the nonce has not been used
         if (usedNonces[recoveredAddress][nonce]) {
@@ -354,7 +372,7 @@ contract AuthIbetWST is IbetWST {
     /// @notice Delete an account from the whitelist with authorization
     /// @dev
     ///   - Can be called by anyone
-    ///   - Token owner must sign the authorization
+    ///   - Token owner or delegated account manager must sign the authorization
     /// @param STAccountAddress The address of the ST account to be removed from the whitelist
     /// @param nonce The authorization nonce for the transaction
     /// @param v v value of the signature
@@ -381,10 +399,7 @@ contract AuthIbetWST is IbetWST {
         );
         // Verify the signature
         address recoveredAddress = ecrecover(digest, v, r, s);
-        if (recoveredAddress != owner() || recoveredAddress == address(0)) {
-            // Throw an error if the signature does not match the token owner's address
-            revert AuthIbetWSTErrors.InvalidAuthorizationSignature(owner());
-        }
+        recoveredAddress = _authorizeWhiteListOperation(recoveredAddress);
 
         // Ensure the nonce has not been used
         if (usedNonces[recoveredAddress][nonce]) {

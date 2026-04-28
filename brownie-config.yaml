@@ -8,7 +8,7 @@ networks:
 compiler:
     evm_version: shanghai
     solc:
-        version: 0.8.23
+        version: 0.8.34
         viaIR: True
 dependencies:
     OpenZeppelin/openzeppelin-contracts@5.3.0

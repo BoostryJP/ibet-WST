@@ -17,12 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.34;
 
 /// @title Errors for ibetWST
 interface IbetWSTErrors {
     /// @dev Error thrown when an account is not registered in the whitelist
     error AccountNotWhitelisted(address accountAddress);
+
+    /// @dev Error thrown when the caller is not allowed to manage the whitelist
+    error AccountWhiteListOperationNotPermitted(address caller);
 
     /// @dev Error thrown when the trade status is not Acceptable
     error TradeRequestIsNotAcceptable(uint256 index);

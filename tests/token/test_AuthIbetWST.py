@@ -966,6 +966,62 @@ class TestAddAccountWhiteListWithAuthorization:
         )
         assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_st.address
 
+    # Normal_2
+    # - Check that a delegated account manager can add an account to the whitelist with authorization
+    def test_normal_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager_pk, account_manager_addr = eip712_helper.generate_account()
+        user_st = users["eoa3"]
+        user_sc_in = users["eoa4"]
+        user_sc_out = users["eoa5"]
+        relayer = users["eoa6"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+
+        # delegate whitelist management
+        token.setAccountManager(account_manager_addr, True, {"from": issuer})
+
+        # generate nonce
+        nonce = secrets.token_bytes(32)
+
+        # generate add account whitelist digest
+        digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            st_account_address=user_st.address,
+            sc_account_address_in=user_sc_in.address,
+            sc_account_address_out=user_sc_out.address,
+            nonce=nonce,
+        )
+
+        # sign the digest by delegated account manager
+        signature = brownie.web3.eth.account._sign_hash(digest, account_manager_pk)
+
+        # add account to whitelist with authorization
+        tx = token.addAccountWhiteListWithAuthorization(
+            user_st.address,
+            user_sc_in.address,
+            user_sc_out.address,
+            nonce,
+            signature.v,
+            signature.r,
+            signature.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(account_manager_addr, nonce) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == account_manager_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert token.accountWhiteList(user_st.address) == (
+            user_st.address,
+            user_sc_in.address,
+            user_sc_out.address,
+            True,
+        )
+        assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_st.address
+
     ##########################################################
     # Error
     ##########################################################
@@ -999,9 +1055,26 @@ class TestAddAccountWhiteListWithAuthorization:
         # sign the digest
         signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
 
+        invalid_digest = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            st_account_address=relayer.address,
+            sc_account_address_in=user_sc_in.address,
+            sc_account_address_out=user_sc_out.address,
+            nonce=nonce,
+        )
+        invalid_recovered_address = brownie.web3.eth.account._recover_hash(
+            invalid_digest,
+            vrs=(signature.v, signature.r, signature.s),
+        )
+
         # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(
+            revert_msg=(
+                "AccountWhiteListOperationNotPermitted: "
+                f"{invalid_recovered_address.lower()}"
+            )
+        ):
             token.addAccountWhiteListWithAuthorization(
                 relayer.address,  # incorrect account address
                 user_sc_in.address,
@@ -1044,7 +1117,9 @@ class TestAddAccountWhiteListWithAuthorization:
 
         # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(
+            revert_msg=(f"AccountWhiteListOperationNotPermitted: {other_addr.lower()}")
+        ):
             token.addAccountWhiteListWithAuthorization(
                 user.address,
                 user.address,
@@ -1192,6 +1267,89 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
         assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
 
+    # Normal_2
+    # - Check that a delegated account manager can delete an account from the whitelist with authorization
+    def test_normal_2(self, AuthIbetWST, users):
+        admin = users["eoa1"]
+        issuer = users["eoa2"]
+        account_manager_pk, account_manager_addr = eip712_helper.generate_account()
+        user = users["eoa3"]
+        relayer = users["eoa4"]
+
+        # deploy
+        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+
+        # delegate whitelist management
+        token.setAccountManager(account_manager_addr, True, {"from": issuer})
+
+        # [ADD-WHITELIST] generate nonce
+        nonce_1 = secrets.token_bytes(32)
+
+        # [ADD-WHITELIST] generate add account whitelist digest
+        digest_1 = eip712_helper.generate_add_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            st_account_address=user.address,
+            sc_account_address_in=user.address,
+            sc_account_address_out=user.address,
+            nonce=nonce_1,
+        )
+
+        # [ADD-WHITELIST] sign the digest by delegated account manager
+        signature_1 = brownie.web3.eth.account._sign_hash(
+            digest_1,
+            account_manager_pk,
+        )
+
+        # [ADD-WHITELIST] add account to whitelist with authorization
+        token.addAccountWhiteListWithAuthorization(
+            user.address,
+            user.address,
+            user.address,
+            nonce_1,
+            signature_1.v,
+            signature_1.r,
+            signature_1.s,
+            {"from": relayer},
+        )
+
+        # [DELETE-WHITELIST] generate nonce
+        nonce_2 = secrets.token_bytes(32)
+
+        # [DELETE-WHITELIST] generate delete account whitelist digest
+        digest_2 = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            st_account_address=user.address,
+            nonce=nonce_2,
+        )
+
+        # [DELETE-WHITELIST] sign the digest by delegated account manager
+        signature_2 = brownie.web3.eth.account._sign_hash(
+            digest_2,
+            account_manager_pk,
+        )
+
+        # [DELETE-WHITELIST] delete account from whitelist with authorization
+        tx = token.deleteAccountWhiteListWithAuthorization(
+            user.address,
+            nonce_2,
+            signature_2.v,
+            signature_2.r,
+            signature_2.s,
+            {"from": relayer},
+        )
+
+        # assertion
+        assert token.usedNonces(account_manager_addr, nonce_2) is True
+        assert tx.events["AuthorizationUsed"]["authorizer"] == account_manager_addr
+        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
+        assert token.accountWhiteList(user.address) == (
+            brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
+            brownie.ZERO_ADDRESS,
+            False,
+        )
+        assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
+
     ##########################################################
     # Error
     ##########################################################
@@ -1249,9 +1407,24 @@ class TestDeleteAccountWhiteListWithAuthorization:
         # [DELETE-WHITELIST] sign the digest
         signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
 
+        invalid_digest = eip712_helper.generate_delete_account_whitelist_digest(
+            domain_separator=token.DOMAIN_SEPARATOR(),
+            st_account_address=relayer.address,
+            nonce=nonce_2,
+        )
+        invalid_recovered_address = brownie.web3.eth.account._recover_hash(
+            invalid_digest,
+            vrs=(signature_2.v, signature_2.r, signature_2.s),
+        )
+
         # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(
+            revert_msg=(
+                "AccountWhiteListOperationNotPermitted: "
+                f"{invalid_recovered_address.lower()}"
+            )
+        ):
             token.deleteAccountWhiteListWithAuthorization(
                 relayer.address,  # incorrect account address
                 nonce_2,
@@ -1318,7 +1491,9 @@ class TestDeleteAccountWhiteListWithAuthorization:
 
         # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with brownie.reverts(
+            revert_msg=(f"AccountWhiteListOperationNotPermitted: {other_addr.lower()}")
+        ):
             token.deleteAccountWhiteListWithAuthorization(
                 user.address,
                 nonce_2,
