@@ -22,6 +22,8 @@ import os
 
 
 def main():
+    os.makedirs("output", exist_ok=True)
+
     # Contract
     _path = "build/contracts"
     file_list = os.listdir(_path)
