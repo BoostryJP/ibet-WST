@@ -18,33 +18,50 @@ SPDX-License-Identifier: Apache-2.0
 """
 
 import json
-import os
+from pathlib import Path
+
+MANIFEST_PATH = Path(".build/__local__.json")
+OUTPUT_DIR = Path("output")
+SKIP_SOURCE_PREFIXES = ("contracts/mock/", "contracts/.cache/")
+
+
+def _is_output_target(contract_name: str, contract_type: dict) -> bool:
+    source_id = contract_type.get("sourceId", "")
+    if not source_id or source_id.startswith(SKIP_SOURCE_PREFIXES):
+        return False
+
+    return (
+        source_id.startswith("contracts/token/")
+        or source_id == "contracts/utils/Errors.sol"
+    )
+
+
+def _to_output_payload(contract_type: dict) -> dict:
+    payload = {"abi": contract_type.get("abi", [])}
+
+    bytecode = contract_type.get("deploymentBytecode", {}).get("bytecode", "0x")
+    deployed_bytecode = contract_type.get("runtimeBytecode", {}).get("bytecode", "0x")
+    if bytecode != "0x" or deployed_bytecode != "0x":
+        payload["bytecode"] = bytecode
+        payload["deployedBytecode"] = deployed_bytecode
+
+    return payload
 
 
 def main():
-    os.makedirs("output", exist_ok=True)
+    OUTPUT_DIR.mkdir(exist_ok=True)
 
-    # Contract
-    _path = "build/contracts"
-    file_list = os.listdir(_path)
-    for file in file_list:
-        if os.path.isfile(os.path.join(_path, file)):
-            contract_json = json.load(open(f"build/contracts/{file}", "r"))
-            output = {
-                "abi": contract_json["abi"],
-                "bytecode": contract_json["bytecode"],
-                "deployedBytecode": contract_json["deployedBytecode"],
-            }
-            with open(f"output/{file}", "w") as f:
-                json.dump(output, f, indent=2)
+    with MANIFEST_PATH.open() as manifest_file:
+        manifest = json.load(manifest_file)
 
-    # Interface
-    file_list = os.listdir("build/interfaces")
-    for file in file_list:
-        contract_json = json.load(open(f"build/interfaces/{file}", "r"))
-        output = {"abi": contract_json["abi"]}
-        with open(f"output/{file}", "w") as f:
-            json.dump(output, f, indent=2)
+    for contract_name, contract_type in manifest.get("contractTypes", {}).items():
+        if not _is_output_target(contract_name, contract_type):
+            continue
+
+        output_path = OUTPUT_DIR / f"{contract_name}.json"
+        with output_path.open("w") as output_file:
+            json.dump(_to_output_payload(contract_type), output_file, indent=2)
+            output_file.write("\n")
 
 
 if __name__ == "__main__":

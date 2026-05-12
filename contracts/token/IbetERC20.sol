@@ -18,8 +18,8 @@
  */
 pragma solidity ^0.8.34;
 
-import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/token/ERC20/ERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@5.3.0/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract IbetERC20 is ERC20, Ownable {
     constructor(

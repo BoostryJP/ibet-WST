@@ -17,7 +17,7 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 """
 
-import brownie
+from tests.helper.ape_utils import event_args, reverts
 
 
 class TestDeploy:
@@ -31,7 +31,7 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # assertion
         assert token.owner() == issuer.address
@@ -54,10 +54,11 @@ class TestMint:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        tx = token.mint(issuer.address, 10, {"from": issuer})
+        tx = token.mint(issuer.address, 10, sender=issuer)
+        event = event_args(tx, token.Mint)
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -66,8 +67,8 @@ class TestMint:
         assert token.totalSupply() == 10
         assert token.balanceOf(issuer.address) == 10
 
-        assert tx.events["Mint"]["to"] == issuer.address
-        assert tx.events["Mint"]["value"] == 10
+        assert event["to"] == issuer.address
+        assert event["value"] == 10
 
     ##########################################################
     # Error
@@ -81,13 +82,11 @@ class TestMint:
         other = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        with brownie.reverts(
-            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
-        ):
-            token.mint(issuer.address, 10, {"from": other})
+        with reverts(token, "OwnableUnauthorizedAccount", account=other.address):
+            token.mint(issuer.address, 10, sender=other)
 
 
 class TestBurn:
@@ -103,13 +102,14 @@ class TestBurn:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # burn
-        tx = token.burn(10, {"from": user_1})
+        tx = token.burn(10, sender=user_1)
+        event = event_args(tx, token.Burn)
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -118,8 +118,8 @@ class TestBurn:
         assert token.totalSupply() == 0
         assert token.balanceOf(user_1.address) == 0
 
-        assert tx.events["Burn"]["from"] == user_1.address
-        assert tx.events["Burn"]["value"] == 10
+        assert event["from"] == user_1.address
+        assert event["value"] == 10
 
     ##########################################################
     # Error
@@ -133,16 +133,19 @@ class TestBurn:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # burn
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientBalance: {user_1.address.lower()}, 10, 11"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=user_1.address,
+            balance=10,
+            needed=11,
         ):
-            token.burn(11, {"from": user_1})
+            token.burn(11, sender=user_1)
 
 
 class TestBurnFrom:
@@ -159,16 +162,17 @@ class TestBurnFrom:
         user_2 = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # approve
-        token.approve(user_2.address, 5, {"from": user_1})
+        token.approve(user_2.address, 5, sender=user_1)
 
         # burnFrom
-        tx = token.burnFrom(user_1.address, 5, {"from": user_2})
+        tx = token.burnFrom(user_1.address, 5, sender=user_2)
+        event = event_args(tx, token.Burn)
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -177,8 +181,8 @@ class TestBurnFrom:
         assert token.totalSupply() == 5
         assert token.balanceOf(user_1.address) == 5
 
-        assert tx.events["Burn"]["from"] == user_1.address
-        assert tx.events["Burn"]["value"] == 5
+        assert event["from"] == user_1.address
+        assert event["value"] == 5
 
     ##########################################################
     # Error
@@ -193,16 +197,19 @@ class TestBurnFrom:
         user_2 = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # burnFrom
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientAllowance: {user_2.address.lower()}, 0, 5"
+        with reverts(
+            token.ERC20InsufficientAllowance,
+            spender=user_2.address,
+            allowance=0,
+            needed=5,
         ):
-            token.burnFrom(user_1.address, 5, {"from": user_2})
+            token.burnFrom(user_1.address, 5, sender=user_2)
 
 
 class TestForceBurnFrom:
@@ -218,13 +225,14 @@ class TestForceBurnFrom:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # forceBurnFrom
-        tx = token.forceBurnFrom(user_1.address, 5, {"from": issuer})
+        tx = token.forceBurnFrom(user_1.address, 5, sender=issuer)
+        event = event_args(tx, token.Burn)
 
         # assertion
         assert token.name() == "IbetERC20"
@@ -233,8 +241,8 @@ class TestForceBurnFrom:
         assert token.totalSupply() == 5
         assert token.balanceOf(user_1.address) == 5
 
-        assert tx.events["Burn"]["from"] == user_1.address
-        assert tx.events["Burn"]["value"] == 5
+        assert event["from"] == user_1.address
+        assert event["value"] == 5
 
     ##########################################################
     # Error
@@ -249,16 +257,14 @@ class TestForceBurnFrom:
         other = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # forceBurnFrom
-        with brownie.reverts(
-            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
-        ):
-            token.forceBurnFrom(user_1.address, 5, {"from": other})
+        with reverts(token, "OwnableUnauthorizedAccount", account=other.address):
+            token.forceBurnFrom(user_1.address, 5, sender=other)
 
     # Error_2
     # - Check that the owner cannot force burn more tokens than the user holds
@@ -268,13 +274,16 @@ class TestForceBurnFrom:
         user_1 = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # mint
-        token.mint(user_1.address, 10, {"from": issuer})
+        token.mint(user_1.address, 10, sender=issuer)
 
         # forceBurnFrom
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientBalance: {user_1.address.lower()}, 10, 11"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=user_1.address,
+            balance=10,
+            needed=11,
         ):
-            token.forceBurnFrom(user_1.address, 11, {"from": issuer})
+            token.forceBurnFrom(user_1.address, 11, sender=issuer)

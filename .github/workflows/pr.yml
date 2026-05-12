@@ -51,12 +51,14 @@ jobs:
           curl -fsSL "$compiler_url" -o "$compiler_path"
           echo "$compiler_sha256  $compiler_path" | sha256sum --check --status
           install -m 0755 "$compiler_path" "$solcx_dir/solc-v0.8.34"
-      - name: Import Brownie network settings
-        run: uv run brownie networks import conf/networks.yml true
+      - name: Install Ape dependencies
+        run: uv run ape pm install
       - name: Compile contracts
-        run: uv run brownie compile --all
+        run: uv run ape compile
       - name: UnitTest
-        run: uv run pytest --disable-warnings -v tests/
+        run: |
+          set -euo pipefail
+          ANVIL_LOG_FILE=/tmp/ibet-wst-anvil.log bash tests/run_anvil_test.sh -q
       - name: Generate contract JSON
         run: uv run python tools/json_filter.py
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

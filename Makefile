@@ -1,14 +1,17 @@
 .PHONY: install setup update format lint compile test
 
+ANVIL_HOST ?= 127.0.0.1
+ANVIL_PORT ?= 8545
+ANVIL_LOG_FILE ?= /tmp/ibet-wst-anvil.log
+ANVIL_STARTUP_TIMEOUT_SECONDS ?= 30
+
 install:
 	uv sync --frozen --no-install-project
 	uv run pre-commit install
 	npm install
 
 setup:
-	brownie pm delete OpenZeppelin/openzeppelin-contracts@5.3.0
-	brownie pm install OpenZeppelin/openzeppelin-contracts@5.3.0
-	brownie networks import conf/networks.yml true
+	uv run ape pm install
 
 update:
 	uv lock --upgrade
@@ -22,7 +25,8 @@ lint:
 	uv run ruff check --fix
 
 compile:
-	brownie compile
+	uv run ape compile
 
 test:
-	uv run pytest --network=test_network tests/ ${ARG}
+	@ANVIL_HOST=$(ANVIL_HOST) ANVIL_PORT=$(ANVIL_PORT) ANVIL_LOG_FILE=$(ANVIL_LOG_FILE) ANVIL_STARTUP_TIMEOUT_SECONDS=$(ANVIL_STARTUP_TIMEOUT_SECONDS) \
+		bash tests/run_anvil_test.sh tests/ ${ARG}

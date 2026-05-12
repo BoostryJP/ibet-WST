@@ -19,9 +19,17 @@ SPDX-License-Identifier: Apache-2.0
 
 import secrets
 
-import brownie
-
 from tests.helper import eip712_helper
+from tests.helper.ape_utils import (
+    ZERO_ADDRESS,
+    chain_id,
+    event_args,
+    recover_hash,
+    reverts,
+    sign_hash,
+    to_hex,
+    tx_sender,
+)
 
 
 class TestDeploy:
@@ -35,7 +43,7 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # assertion
         assert token.owner() == issuer.address
@@ -48,10 +56,10 @@ class TestDeploy:
         domain_separator = eip712_helper.generate_domain_separator(
             name=token.name(),
             version="1",
-            chain_id=brownie.chain.id,
+            chain_id=chain_id(),
             verifying_contract=token.address,
         )
-        assert token.DOMAIN_SEPARATOR() == "0x" + domain_separator.hex()
+        assert to_hex(token.DOMAIN_SEPARATOR()) == "0x" + domain_separator.hex()
 
 
 class TestMintWithAuthorization:
@@ -67,7 +75,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -81,7 +89,7 @@ class TestMintWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         # mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -92,18 +100,18 @@ class TestMintWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(issuer_addr, nonce) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == issuer_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce)
 
         assert token.balanceOf(user.address) == 100
 
-        assert tx.events["Mint"]["to"] == user.address
-        assert tx.events["Mint"]["value"] == 100
+        assert event_args(tx, token.Mint)["to"] == user.address
+        assert event_args(tx, token.Mint)["value"] == 100
 
     ##########################################################
     # Error
@@ -119,7 +127,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -133,11 +141,11 @@ class TestMintWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         # mint with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with reverts(token, "InvalidAuthorizationSignature", authorizer=issuer_addr):
             token.mintWithAuthorization(
                 relayer.address,  # incorrect account address
                 100,
@@ -145,7 +153,7 @@ class TestMintWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_1_2
@@ -159,7 +167,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -174,11 +182,11 @@ class TestMintWithAuthorization:
 
         # sign the digest
         # - signature is signed by other account, not token owner
-        signature = brownie.web3.eth.account._sign_hash(digest, other_pk)
+        signature = sign_hash(digest, other_pk)
 
         # mint with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with reverts(token, "InvalidAuthorizationSignature", authorizer=issuer_addr):
             token.mintWithAuthorization(
                 user.address,
                 100,
@@ -186,7 +194,7 @@ class TestMintWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -198,7 +206,7 @@ class TestMintWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -212,7 +220,7 @@ class TestMintWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         # mint with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
@@ -223,13 +231,15 @@ class TestMintWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # mint with authorization (2nd time)
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=issuer_addr,
+            nonce=nonce,
         ):
             token.mintWithAuthorization(
                 user.address,
@@ -238,7 +248,7 @@ class TestMintWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -255,7 +265,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -269,7 +279,7 @@ class TestBurnWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -280,7 +290,7 @@ class TestBurnWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [BURN] generate nonce
@@ -295,7 +305,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, user_pk)
+        signature_2 = sign_hash(digest_2, user_pk)
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
@@ -306,18 +316,18 @@ class TestBurnWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(user_addr, nonce_2) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == user_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == user_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce_2)
 
         assert token.balanceOf(user_addr) == 0
 
-        assert tx.events["Burn"]["from"] == user_addr
-        assert tx.events["Burn"]["value"] == 100
+        assert event_args(tx, token.Burn)["from"] == user_addr
+        assert event_args(tx, token.Burn)["value"] == 100
 
     ##########################################################
     # Error
@@ -333,7 +343,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -347,7 +357,7 @@ class TestBurnWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -358,7 +368,7 @@ class TestBurnWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [BURN] generate nonce
@@ -373,12 +383,13 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(
-            f"InvalidAuthorizationSignature: {relayer.address.lower()}"
+        with reverts(
+            token.InvalidAuthorizationSignature,
+            authorizer=relayer.address,
         ):
             token.burnWithAuthorization(
                 relayer.address,  # incorrect account address
@@ -387,7 +398,7 @@ class TestBurnWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_1_2
@@ -401,7 +412,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -415,7 +426,7 @@ class TestBurnWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -426,7 +437,7 @@ class TestBurnWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [BURN] generate nonce
@@ -442,11 +453,11 @@ class TestBurnWithAuthorization:
 
         # [BURN] sign the digest
         # - signature is signed by other account, not token owner
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
+        signature_2 = sign_hash(digest_2, other_pk)
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {user.address.lower()}"):
+        with reverts(token, "InvalidAuthorizationSignature", authorizer=user.address):
             token.burnWithAuthorization(
                 user.address,
                 100,
@@ -454,7 +465,7 @@ class TestBurnWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -466,7 +477,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -480,7 +491,7 @@ class TestBurnWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
@@ -491,7 +502,7 @@ class TestBurnWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [BURN] generate nonce
@@ -506,7 +517,7 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, user_pk)
+        signature_2 = sign_hash(digest_2, user_pk)
 
         # [BURN] burn with authorization (1st time)
         # - transaction is sent not by user but by relayer
@@ -517,13 +528,15 @@ class TestBurnWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [BURN] burn with authorization (2nd time)
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {user_addr.lower()}, {nonce_2}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=user_addr,
+            nonce=nonce_2,
         ):
             token.burnWithAuthorization(
                 user_addr,
@@ -532,7 +545,7 @@ class TestBurnWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_3
@@ -544,7 +557,7 @@ class TestBurnWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # [BURN] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -558,11 +571,16 @@ class TestBurnWithAuthorization:
         )
 
         # [BURN] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, user_pk)
+        signature_2 = sign_hash(digest_2, user_pk)
 
         # [BURN] burn with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"ERC20InsufficientBalance: {user_addr.lower()}, 0, 100"):
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=user_addr,
+            balance=0,
+            needed=100,
+        ):
             token.burnWithAuthorization(
                 user_addr,
                 100,
@@ -570,7 +588,7 @@ class TestBurnWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -587,7 +605,7 @@ class TestForceBurnFromWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -601,7 +619,7 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -612,7 +630,7 @@ class TestForceBurnFromWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [FORCE-BURN-FROM] generate nonce
@@ -628,7 +646,7 @@ class TestForceBurnFromWithAuthorization:
 
         # [FORCE-BURN-FROM] sign the digest
         # - signature is signed by issuer
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [FORCE-BURN-FROM] force burn from with authorization
         # - transaction is sent not by user but by relayer
@@ -639,18 +657,18 @@ class TestForceBurnFromWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(issuer_addr, nonce_2) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == issuer_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce_2)
 
         assert token.balanceOf(user.address) == 50
 
-        assert tx.events["Burn"]["from"] == user.address
-        assert tx.events["Burn"]["value"] == 50
+        assert event_args(tx, token.Burn)["from"] == user.address
+        assert event_args(tx, token.Burn)["value"] == 50
 
     ##########################################################
     # Error
@@ -667,7 +685,7 @@ class TestForceBurnFromWithAuthorization:
         other = users["eoa4"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -681,7 +699,7 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -692,7 +710,7 @@ class TestForceBurnFromWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [FORCE-BURN-FROM] generate nonce
@@ -707,11 +725,11 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [FORCE-BURN-FROM] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [FORCE-BURN-FROM] force burn from with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with reverts(token, "InvalidAuthorizationSignature", authorizer=issuer_addr):
             token.forceBurnFromWithAuthorization(
                 other.address,  # incorrect account address
                 50,
@@ -719,7 +737,7 @@ class TestForceBurnFromWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_1_2
@@ -733,7 +751,7 @@ class TestForceBurnFromWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -747,7 +765,7 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization
         # - transaction is sent not by issuer but by relayer
@@ -758,7 +776,7 @@ class TestForceBurnFromWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [FORCE-BURN-FROM] generate nonce
@@ -774,11 +792,11 @@ class TestForceBurnFromWithAuthorization:
 
         # [FORCE-BURN-FROM] sign the digest
         # - signature is signed by other account, not token owner
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
+        signature_2 = sign_hash(digest_2, other_pk)
 
         # [FORCE-BURN-FROM] force burn from with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {issuer_addr.lower()}"):
+        with reverts(token, "InvalidAuthorizationSignature", authorizer=issuer_addr):
             token.forceBurnFromWithAuthorization(
                 user.address,
                 50,
@@ -786,7 +804,7 @@ class TestForceBurnFromWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -798,7 +816,7 @@ class TestForceBurnFromWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [MINT] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -812,7 +830,7 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [MINT] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [MINT] mint with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
@@ -823,7 +841,7 @@ class TestForceBurnFromWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [FORCE-BURN-FROM] generate nonce
@@ -838,7 +856,7 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [FORCE-BURN-FROM] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [FORCE-BURN-FROM] force burn from with authorization (1st time)
         # - transaction is sent not by user but by relayer
@@ -849,13 +867,15 @@ class TestForceBurnFromWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [FORCE-BURN-FROM] force burn from with authorization (2nd time)
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce_2}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=issuer_addr,
+            nonce=nonce_2,
         ):
             token.forceBurnFromWithAuthorization(
                 user.address,
@@ -864,7 +884,7 @@ class TestForceBurnFromWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_3
@@ -876,7 +896,7 @@ class TestForceBurnFromWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [FORCE-BURN-FROM] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -890,12 +910,15 @@ class TestForceBurnFromWithAuthorization:
         )
 
         # [FORCE-BURN-FROM] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [FORCE-BURN-FROM] force burn from with authorization
         # - transaction is sent not by user but by relayer
-        with brownie.reverts(
-            f"ERC20InsufficientBalance: {user.address.lower()}, 0, 50"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=user.address,
+            balance=0,
+            needed=50,
         ):
             token.forceBurnFromWithAuthorization(
                 user.address,
@@ -904,7 +927,7 @@ class TestForceBurnFromWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -923,7 +946,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -938,7 +961,7 @@ class TestAddAccountWhiteListWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -950,13 +973,13 @@ class TestAddAccountWhiteListWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(issuer_addr, nonce) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == issuer_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce)
 
         assert token.accountWhiteList(user_st.address) == (
             user_st.address,
@@ -964,7 +987,10 @@ class TestAddAccountWhiteListWithAuthorization:
             user_sc_out.address,
             True,
         )
-        assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_st.address
+        assert (
+            event_args(tx, token.AccountWhiteListAdded)["accountAddress"]
+            == user_st.address
+        )
 
     # Normal_2
     # - Check that a delegated account manager can add an account to the whitelist with authorization
@@ -978,10 +1004,10 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa6"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # delegate whitelist management
-        token.setAccountManager(account_manager_addr, True, {"from": issuer})
+        token.setAccountManager(account_manager_addr, True, sender=issuer)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -996,7 +1022,7 @@ class TestAddAccountWhiteListWithAuthorization:
         )
 
         # sign the digest by delegated account manager
-        signature = brownie.web3.eth.account._sign_hash(digest, account_manager_pk)
+        signature = sign_hash(digest, account_manager_pk)
 
         # add account to whitelist with authorization
         tx = token.addAccountWhiteListWithAuthorization(
@@ -1007,20 +1033,26 @@ class TestAddAccountWhiteListWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(account_manager_addr, nonce) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == account_manager_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert (
+            event_args(tx, token.AuthorizationUsed)["authorizer"]
+            == account_manager_addr
+        )
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce)
         assert token.accountWhiteList(user_st.address) == (
             user_st.address,
             user_sc_in.address,
             user_sc_out.address,
             True,
         )
-        assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_st.address
+        assert (
+            event_args(tx, token.AccountWhiteListAdded)["accountAddress"]
+            == user_st.address
+        )
 
     ##########################################################
     # Error
@@ -1038,7 +1070,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1053,7 +1085,7 @@ class TestAddAccountWhiteListWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         invalid_digest = eip712_helper.generate_add_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
@@ -1062,18 +1094,16 @@ class TestAddAccountWhiteListWithAuthorization:
             sc_account_address_out=user_sc_out.address,
             nonce=nonce,
         )
-        invalid_recovered_address = brownie.web3.eth.account._recover_hash(
+        invalid_recovered_address = recover_hash(
             invalid_digest,
             vrs=(signature.v, signature.r, signature.s),
         )
 
         # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            revert_msg=(
-                "AccountWhiteListOperationNotPermitted: "
-                f"{invalid_recovered_address.lower()}"
-            )
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=invalid_recovered_address,
         ):
             token.addAccountWhiteListWithAuthorization(
                 relayer.address,  # incorrect account address
@@ -1083,7 +1113,7 @@ class TestAddAccountWhiteListWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_1_2
@@ -1097,7 +1127,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1113,12 +1143,13 @@ class TestAddAccountWhiteListWithAuthorization:
 
         # sign the digest
         # - signature is signed by other account, not token owner
-        signature = brownie.web3.eth.account._sign_hash(digest, other_pk)
+        signature = sign_hash(digest, other_pk)
 
         # add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            revert_msg=(f"AccountWhiteListOperationNotPermitted: {other_addr.lower()}")
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=other_addr,
         ):
             token.addAccountWhiteListWithAuthorization(
                 user.address,
@@ -1128,7 +1159,7 @@ class TestAddAccountWhiteListWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -1140,7 +1171,7 @@ class TestAddAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -1155,7 +1186,7 @@ class TestAddAccountWhiteListWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, issuer_pk)
+        signature = sign_hash(digest, issuer_pk)
 
         # add account to whitelist with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
@@ -1167,13 +1198,15 @@ class TestAddAccountWhiteListWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # add account to whitelist with authorization (2nd time)
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=issuer_addr,
+            nonce=nonce,
         ):
             token.addAccountWhiteListWithAuthorization(
                 user.address,
@@ -1183,7 +1216,7 @@ class TestAddAccountWhiteListWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -1200,7 +1233,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -1215,7 +1248,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [ADD-WHITELIST] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -1227,7 +1260,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] generate nonce
@@ -1241,7 +1274,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -1251,21 +1284,24 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(issuer_addr, nonce_2) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == issuer_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == issuer_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce_2)
 
         assert token.accountWhiteList(user.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
-        assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
+        assert (
+            event_args(tx, token.AccountWhiteListDeleted)["accountAddress"]
+            == user.address
+        )
 
     # Normal_2
     # - Check that a delegated account manager can delete an account from the whitelist with authorization
@@ -1277,10 +1313,10 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa4"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # delegate whitelist management
-        token.setAccountManager(account_manager_addr, True, {"from": issuer})
+        token.setAccountManager(account_manager_addr, True, sender=issuer)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -1295,7 +1331,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [ADD-WHITELIST] sign the digest by delegated account manager
-        signature_1 = brownie.web3.eth.account._sign_hash(
+        signature_1 = sign_hash(
             digest_1,
             account_manager_pk,
         )
@@ -1309,7 +1345,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] generate nonce
@@ -1323,7 +1359,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] sign the digest by delegated account manager
-        signature_2 = brownie.web3.eth.account._sign_hash(
+        signature_2 = sign_hash(
             digest_2,
             account_manager_pk,
         )
@@ -1335,20 +1371,26 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
         assert token.usedNonces(account_manager_addr, nonce_2) is True
-        assert tx.events["AuthorizationUsed"]["authorizer"] == account_manager_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce_2)
+        assert (
+            event_args(tx, token.AuthorizationUsed)["authorizer"]
+            == account_manager_addr
+        )
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce_2)
         assert token.accountWhiteList(user.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
-        assert tx.events["AccountWhiteListDeleted"]["accountAddress"] == user.address
+        assert (
+            event_args(tx, token.AccountWhiteListDeleted)["accountAddress"]
+            == user.address
+        )
 
     ##########################################################
     # Error
@@ -1364,7 +1406,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -1379,7 +1421,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [ADD-WHITELIST] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -1391,7 +1433,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] generate nonce
@@ -1405,25 +1447,23 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         invalid_digest = eip712_helper.generate_delete_account_whitelist_digest(
             domain_separator=token.DOMAIN_SEPARATOR(),
             st_account_address=relayer.address,
             nonce=nonce_2,
         )
-        invalid_recovered_address = brownie.web3.eth.account._recover_hash(
+        invalid_recovered_address = recover_hash(
             invalid_digest,
             vrs=(signature_2.v, signature_2.r, signature_2.s),
         )
 
         # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            revert_msg=(
-                "AccountWhiteListOperationNotPermitted: "
-                f"{invalid_recovered_address.lower()}"
-            )
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=invalid_recovered_address,
         ):
             token.deleteAccountWhiteListWithAuthorization(
                 relayer.address,  # incorrect account address
@@ -1431,7 +1471,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_1_2
@@ -1445,7 +1485,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -1460,7 +1500,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [ADD-WHITELIST] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -1472,7 +1512,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] generate nonce
@@ -1487,12 +1527,13 @@ class TestDeleteAccountWhiteListWithAuthorization:
 
         # [DELETE-WHITELIST] sign the digest
         # - signature is signed by other account, not token owner
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, other_pk)
+        signature_2 = sign_hash(digest_2, other_pk)
 
         # [DELETE-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            revert_msg=(f"AccountWhiteListOperationNotPermitted: {other_addr.lower()}")
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=other_addr,
         ):
             token.deleteAccountWhiteListWithAuthorization(
                 user.address,
@@ -1500,7 +1541,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -1512,7 +1553,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer_addr)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer_addr, sender=admin)
 
         # [ADD-WHITELIST] generate nonce
         nonce_1 = secrets.token_bytes(32)
@@ -1527,7 +1568,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [ADD-WHITELIST] sign the digest
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, issuer_pk)
+        signature_1 = sign_hash(digest_1, issuer_pk)
 
         # [ADD-WHITELIST] add account to whitelist with authorization
         # - transaction is sent not by issuer but by relayer
@@ -1539,7 +1580,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] generate nonce
@@ -1553,7 +1594,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
         )
 
         # [DELETE-WHITELIST] sign the digest
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, issuer_pk)
+        signature_2 = sign_hash(digest_2, issuer_pk)
 
         # [DELETE-WHITELIST] add account to whitelist with authorization (1st time)
         # - transaction is sent not by issuer but by relayer
@@ -1563,13 +1604,15 @@ class TestDeleteAccountWhiteListWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [DELETE-WHITELIST] add account to whitelist with authorization (2nd time)
         # - transaction is sent not by issuer but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {issuer_addr.lower()}, {nonce_2}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=issuer_addr,
+            nonce=nonce_2,
         ):
             token.deleteAccountWhiteListWithAuthorization(
                 user.address,
@@ -1577,7 +1620,7 @@ class TestDeleteAccountWhiteListWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -1598,17 +1641,17 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1626,7 +1669,7 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
@@ -1640,16 +1683,16 @@ class TestTransferWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # assertion
-        assert tx.events["AuthorizationUsed"]["authorizer"] == from_user_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == from_user_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce)
 
-        assert tx.events["Transfer"]["from"] == from_user_addr
-        assert tx.events["Transfer"]["to"] == to_user_addr
-        assert tx.events["Transfer"]["value"] == 100
+        assert event_args(tx, token.Transfer)["from"] == from_user_addr
+        assert event_args(tx, token.Transfer)["to"] == to_user_addr
+        assert event_args(tx, token.Transfer)["value"] == 100
 
         assert token.balanceOf(from_user_addr) == 900
         assert token.balanceOf(to_user_addr) == 100
@@ -1673,17 +1716,17 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1  # max uint32
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1701,12 +1744,14 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(
-            f"TransactionNotInValidPeriod: {_valid_after}, {_valid_before}"
+        with reverts(
+            token.TransactionNotInValidPeriod,
+            validAfter=_valid_after,
+            validBefore=_valid_before,
         ):
             token.transferWithAuthorization(
                 from_user_addr,
@@ -1718,7 +1763,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
         # assertion
@@ -1740,17 +1785,17 @@ class TestTransferWithAuthorization:
         _valid_before = 10
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1768,12 +1813,14 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(
-            f"TransactionNotInValidPeriod: {_valid_after}, {_valid_before}"
+        with reverts(
+            token.TransactionNotInValidPeriod,
+            validAfter=_valid_after,
+            validBefore=_valid_before,
         ):
             token.transferWithAuthorization(
                 from_user_addr,
@@ -1785,7 +1832,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
         # assertion
@@ -1807,17 +1854,17 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1835,7 +1882,7 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization (1st time)
         # - transaction is sent not by from_user but by issuer
@@ -1849,13 +1896,15 @@ class TestTransferWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transfer with authorization (2nd time)
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {from_user_addr.lower()}, {nonce}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=from_user_addr,
+            nonce=nonce,
         ):
             token.transferWithAuthorization(
                 from_user_addr,
@@ -1867,7 +1916,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
     # Error_4
@@ -1883,17 +1932,17 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1911,12 +1960,13 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(
-            f"InvalidAuthorizationSignature: {from_user_addr.lower()}"
+        with reverts(
+            token.InvalidAuthorizationSignature,
+            authorizer=from_user_addr,
         ):
             token.transferWithAuthorization(
                 from_user_addr,
@@ -1928,7 +1978,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
     # Error_5
@@ -1944,17 +1994,17 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -1972,12 +2022,15 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(
-            f"ERC20InsufficientBalance: {from_user_addr.lower()}, 1000, 1001"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=from_user_addr,
+            balance=1000,
+            needed=1001,
         ):
             token.transferWithAuthorization(
                 from_user_addr,
@@ -1989,7 +2042,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
     # Error_6_1
@@ -2005,14 +2058,14 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2030,11 +2083,13 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(f"AccountNotWhitelisted: {from_user_addr.lower()}"):
+        with reverts(
+            AuthIbetWST, "AccountNotWhitelisted", accountAddress=from_user_addr
+        ):
             token.transferWithAuthorization(
                 from_user_addr,
                 to_user_addr,
@@ -2045,7 +2100,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
     # Error_6_2
@@ -2061,14 +2116,14 @@ class TestTransferWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2086,11 +2141,11 @@ class TestTransferWithAuthorization:
         )
 
         # sign the digest
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # transfer with authorization
         # - transaction is sent not by from_user but by issuer
-        with brownie.reverts(f"AccountNotWhitelisted: {to_user_addr.lower()}"):
+        with reverts(AuthIbetWST, "AccountNotWhitelisted", accountAddress=to_user_addr):
             token.transferWithAuthorization(
                 from_user_addr,
                 to_user_addr,
@@ -2101,7 +2156,7 @@ class TestTransferWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": issuer},
+                sender=issuer,
             )
 
 
@@ -2122,17 +2177,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2150,7 +2205,7 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
         tx = token.receiveWithAuthorization(
@@ -2163,16 +2218,16 @@ class TestReceiveWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": to_user_addr},
+            sender=tx_sender(to_user_addr),
         )
 
         # assertion
-        assert tx.events["AuthorizationUsed"]["authorizer"] == from_user_addr
-        assert tx.events["AuthorizationUsed"]["nonce"] == brownie.web3.to_hex(nonce)
+        assert event_args(tx, token.AuthorizationUsed)["authorizer"] == from_user_addr
+        assert event_args(tx, token.AuthorizationUsed)["nonce"] == to_hex(nonce)
 
-        assert tx.events["Transfer"]["from"] == from_user_addr
-        assert tx.events["Transfer"]["to"] == to_user_addr
-        assert tx.events["Transfer"]["value"] == 100
+        assert event_args(tx, token.Transfer)["from"] == from_user_addr
+        assert event_args(tx, token.Transfer)["to"] == to_user_addr
+        assert event_args(tx, token.Transfer)["value"] == 100
 
         assert token.balanceOf(from_user_addr) == 900
         assert token.balanceOf(to_user_addr) == 100
@@ -2196,17 +2251,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1  # max uint32
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2224,11 +2279,13 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(
-            f"TransactionNotInValidPeriod: {_valid_after}, {_valid_before}"
+        with reverts(
+            token.TransactionNotInValidPeriod,
+            validAfter=_valid_after,
+            validBefore=_valid_before,
         ):
             token.receiveWithAuthorization(
                 from_user_addr,
@@ -2240,7 +2297,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
         # assertion
@@ -2262,17 +2319,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 10
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2290,11 +2347,13 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(
-            f"TransactionNotInValidPeriod: {_valid_after}, {_valid_before}"
+        with reverts(
+            token.TransactionNotInValidPeriod,
+            validAfter=_valid_after,
+            validBefore=_valid_before,
         ):
             token.receiveWithAuthorization(
                 from_user_addr,
@@ -2306,7 +2365,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
         # assertion
@@ -2328,17 +2387,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2356,7 +2415,7 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization (1st time)
         token.receiveWithAuthorization(
@@ -2369,12 +2428,14 @@ class TestReceiveWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": to_user_addr},
+            sender=tx_sender(to_user_addr),
         )
 
         # receive with authorization (2nd time)
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {from_user_addr.lower()}, {nonce}"
+        with reverts(
+            token.AuthorizationNonceAlreadyUsed,
+            authorizer=from_user_addr,
+            nonce=nonce,
         ):
             token.receiveWithAuthorization(
                 from_user_addr,
@@ -2386,7 +2447,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
     # Error_4
@@ -2402,17 +2463,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2430,11 +2491,12 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(
-            f"InvalidAuthorizationSignature: {from_user_addr.lower()}"
+        with reverts(
+            token.InvalidAuthorizationSignature,
+            authorizer=from_user_addr,
         ):
             token.receiveWithAuthorization(
                 from_user_addr,
@@ -2446,7 +2508,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
     # Error_5
@@ -2462,17 +2524,17 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2490,11 +2552,14 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(
-            f"ERC20InsufficientBalance: {from_user_addr.lower()}, 1000, 1001"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=from_user_addr,
+            balance=1000,
+            needed=1001,
         ):
             token.receiveWithAuthorization(
                 from_user_addr,
@@ -2506,7 +2571,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
     # Error_6_1
@@ -2522,14 +2587,14 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            to_user_addr, to_user_addr, to_user_addr, {"from": issuer}
+            to_user_addr, to_user_addr, to_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2547,10 +2612,12 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(f"AccountNotWhitelisted: {from_user_addr.lower()}"):
+        with reverts(
+            AuthIbetWST, "AccountNotWhitelisted", accountAddress=from_user_addr
+        ):
             token.receiveWithAuthorization(
                 from_user_addr,
                 to_user_addr,
@@ -2561,7 +2628,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
     # Error_6_2
@@ -2577,14 +2644,14 @@ class TestReceiveWithAuthorization:
         _valid_before = 2**32 - 1
 
         # deploy
-        token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # mint tokens to from_user
-        token.mint(from_user_addr, 1000, {"from": issuer})
+        token.mint(from_user_addr, 1000, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
-            from_user_addr, from_user_addr, from_user_addr, {"from": issuer}
+            from_user_addr, from_user_addr, from_user_addr, sender=issuer
         )
 
         # generate nonce
@@ -2602,10 +2669,10 @@ class TestReceiveWithAuthorization:
         )
 
         # sign the digest by from_user
-        signature = brownie.web3.eth.account._sign_hash(digest, from_user_pk)
+        signature = sign_hash(digest, from_user_pk)
 
         # receive with authorization
-        with brownie.reverts(f"AccountNotWhitelisted: {to_user_addr.lower()}"):
+        with reverts(AuthIbetWST, "AccountNotWhitelisted", accountAddress=to_user_addr):
             token.receiveWithAuthorization(
                 from_user_addr,
                 to_user_addr,
@@ -2616,7 +2683,7 @@ class TestReceiveWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": to_user_addr},
+                sender=tx_sender(to_user_addr),
             )
 
 
@@ -2640,20 +2707,23 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa7"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
             seller_st_addr,
             seller_sc_in.address,
             seller_sc_out.address,
-            {"from": issuer},
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc_in.address, buyer_sc_out.address, {"from": issuer}
+            buyer_st_addr,
+            buyer_sc_in.address,
+            buyer_sc_out.address,
+            sender=issuer,
         )
 
         # generate nonce
@@ -2672,7 +2742,7 @@ class TestRequestTradeWithAuthorization:
         )
 
         # sign the digest by seller_st_addr
-        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+        signature = sign_hash(digest, seller_st_pk)
 
         # request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -2687,7 +2757,7 @@ class TestRequestTradeWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
@@ -2705,19 +2775,29 @@ class TestRequestTradeWithAuthorization:
             "trade_memo",
         )
 
-        assert tx.events["TradeRequested"]["index"] == 1
-        assert tx.events["TradeRequested"]["sellerSTAccountAddress"] == seller_st_addr
-        assert tx.events["TradeRequested"]["buyerSTAccountAddress"] == buyer_st_addr
-        assert tx.events["TradeRequested"]["SCTokenAddress"] == sc_token.address
+        assert event_args(tx, st_token.TradeRequested)["index"] == 1
         assert (
-            tx.events["TradeRequested"]["sellerSCAccountAddress"]
+            event_args(tx, st_token.TradeRequested)["sellerSTAccountAddress"]
+            == seller_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeRequested)["buyerSTAccountAddress"]
+            == buyer_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeRequested)["SCTokenAddress"]
+            == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRequested)["sellerSCAccountAddress"]
             == seller_sc_in.address
         )
         assert (
-            tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc_out.address
+            event_args(tx, st_token.TradeRequested)["buyerSCAccountAddress"]
+            == buyer_sc_out.address
         )
-        assert tx.events["TradeRequested"]["STValue"] == 100
-        assert tx.events["TradeRequested"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeRequested)["STValue"] == 100
+        assert event_args(tx, st_token.TradeRequested)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -2735,10 +2815,10 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa3"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # generate nonce
         nonce = secrets.token_bytes(32)
@@ -2756,11 +2836,13 @@ class TestRequestTradeWithAuthorization:
         )
 
         # sign the digest by seller_st_addr
-        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+        signature = sign_hash(digest, seller_st_pk)
 
         # request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
-        with brownie.reverts(f"AccountNotWhitelisted: {seller_st_addr.lower()}"):
+        with reverts(
+            AuthIbetWST, "AccountNotWhitelisted", accountAddress=seller_st_addr
+        ):
             st_token.requestTradeWithAuthorization(
                 seller_st_addr,
                 buyer_st_addr,
@@ -2772,7 +2854,7 @@ class TestRequestTradeWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
         # assertion
@@ -2791,14 +2873,17 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa4"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
 
         # generate nonce
@@ -2817,11 +2902,13 @@ class TestRequestTradeWithAuthorization:
         )
 
         # sign the digest by seller_st_addr
-        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+        signature = sign_hash(digest, seller_st_pk)
 
         # request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
-        with brownie.reverts(f"AccountNotWhitelisted: {buyer_st_addr.lower()}"):
+        with reverts(
+            AuthIbetWST, "AccountNotWhitelisted", accountAddress=buyer_st_addr
+        ):
             st_token.requestTradeWithAuthorization(
                 seller_st_addr,
                 buyer_st_addr,
@@ -2833,7 +2920,7 @@ class TestRequestTradeWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
         # assertion
@@ -2853,17 +2940,20 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # generate nonce
@@ -2882,7 +2972,7 @@ class TestRequestTradeWithAuthorization:
         )
 
         # sign the digest by seller_st_addr
-        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+        signature = sign_hash(digest, seller_st_pk)
 
         # request trade with authorization (1st time)
         st_token.requestTradeWithAuthorization(
@@ -2896,13 +2986,15 @@ class TestRequestTradeWithAuthorization:
             signature.v,
             signature.r,
             signature.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # request trade with authorization (2nd time)
         # - transaction is sent not by seller_st_addr but by relayer
-        with brownie.reverts(
-            f"AuthorizationNonceAlreadyUsed: {seller_st_addr.lower()}, {nonce}"
+        with reverts(
+            st_token.AuthorizationNonceAlreadyUsed,
+            authorizer=seller_st_addr,
+            nonce=nonce,
         ):
             st_token.requestTradeWithAuthorization(
                 seller_st_addr,
@@ -2915,7 +3007,7 @@ class TestRequestTradeWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_4
@@ -2932,17 +3024,20 @@ class TestRequestTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # generate nonce
@@ -2961,12 +3056,13 @@ class TestRequestTradeWithAuthorization:
         )
 
         # sign the digest by seller_st_addr
-        signature = brownie.web3.eth.account._sign_hash(digest, seller_st_pk)
+        signature = sign_hash(digest, seller_st_pk)
 
         # request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
-        with brownie.reverts(
-            f"InvalidAuthorizationSignature: {seller_st_addr.lower()}"
+        with reverts(
+            st_token.InvalidAuthorizationSignature,
+            authorizer=seller_st_addr,
         ):
             st_token.requestTradeWithAuthorization(
                 seller_st_addr,
@@ -2979,7 +3075,7 @@ class TestRequestTradeWithAuthorization:
                 signature.v,
                 signature.r,
                 signature.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -3001,18 +3097,21 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3031,7 +3130,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3046,7 +3145,7 @@ class TestCancelTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [CANCEL-TRADE] generate nonce
@@ -3059,7 +3158,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+        signature_2 = sign_hash(digest_2, seller_st_pk)
 
         # [CANCEL-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3069,7 +3168,7 @@ class TestCancelTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
@@ -3078,16 +3177,29 @@ class TestCancelTradeWithAuthorization:
         assert st_token.balanceOf(seller_st_addr) == 100
         assert st_token.balanceOf(buyer_st_addr) == 0
 
-        assert tx.events["TradeCancelled"]["index"] == 1
-        assert tx.events["TradeCancelled"]["sellerSTAccountAddress"] == seller_st_addr
-        assert tx.events["TradeCancelled"]["buyerSTAccountAddress"] == buyer_st_addr
-        assert tx.events["TradeCancelled"]["SCTokenAddress"] == sc_token.address
+        assert event_args(tx, st_token.TradeCancelled)["index"] == 1
         assert (
-            tx.events["TradeCancelled"]["sellerSCAccountAddress"] == seller_sc.address
+            event_args(tx, st_token.TradeCancelled)["sellerSTAccountAddress"]
+            == seller_st_addr
         )
-        assert tx.events["TradeCancelled"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeCancelled"]["STValue"] == 100
-        assert tx.events["TradeCancelled"]["SCValue"] == 200
+        assert (
+            event_args(tx, st_token.TradeCancelled)["buyerSTAccountAddress"]
+            == buyer_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeCancelled)["SCTokenAddress"]
+            == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeCancelled)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeCancelled)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeCancelled)["STValue"] == 100
+        assert event_args(tx, st_token.TradeCancelled)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -3107,18 +3219,21 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3137,7 +3252,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3152,7 +3267,7 @@ class TestCancelTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [CANCEL-TRADE] generate nonce
@@ -3165,7 +3280,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+        signature_2 = sign_hash(digest_2, seller_st_pk)
 
         # [CANCEL-TRADE] request trade with authorization (1st time)
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3175,18 +3290,18 @@ class TestCancelTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [CANCEL-TRADE] request trade with authorization (2nd time)
-        with brownie.reverts(f"TradeRequestIsNotAcceptable: {index}"):
+        with reverts(AuthIbetWST, "TradeRequestIsNotAcceptable", index=index):
             st_token.cancelTradeWithAuthorization(
                 index,
                 nonce_2,
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -3203,18 +3318,21 @@ class TestCancelTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3233,7 +3351,7 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3248,7 +3366,7 @@ class TestCancelTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [CANCEL-TRADE] generate nonce
@@ -3263,12 +3381,13 @@ class TestCancelTradeWithAuthorization:
         )
 
         # [CANCEL-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, seller_st_pk)
+        signature_2 = sign_hash(digest_2, seller_st_pk)
 
         # [CANCEL-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
-        with brownie.reverts(
-            f"InvalidAuthorizationSignature: {seller_st_addr.lower()}"
+        with reverts(
+            st_token.InvalidAuthorizationSignature,
+            authorizer=seller_st_addr,
         ):
             st_token.cancelTradeWithAuthorization(
                 index,
@@ -3276,7 +3395,7 @@ class TestCancelTradeWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
 
@@ -3299,19 +3418,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3330,7 +3452,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3345,11 +3467,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3361,7 +3483,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
@@ -3371,7 +3493,7 @@ class TestAcceptTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
@@ -3382,14 +3504,28 @@ class TestAcceptTradeWithAuthorization:
         assert sc_token.balanceOf(seller_sc.address) == 200
         assert sc_token.balanceOf(buyer_sc.address) == 0
 
-        assert tx.events["TradeAccepted"]["index"] == 1
-        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st_addr
-        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st_addr
-        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
-        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeAccepted"]["STValue"] == 100
-        assert tx.events["TradeAccepted"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeAccepted)["index"] == 1
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSTAccountAddress"]
+            == seller_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSTAccountAddress"]
+            == buyer_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["SCTokenAddress"] == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeAccepted)["STValue"] == 100
+        assert event_args(tx, st_token.TradeAccepted)["SCValue"] == 200
 
     # Normal_2
     # - Accept trade with authorization (same SC for seller and buyer)
@@ -3405,19 +3541,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3436,7 +3575,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3451,11 +3590,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3467,7 +3606,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
@@ -3477,7 +3616,7 @@ class TestAcceptTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
@@ -3492,14 +3631,28 @@ class TestAcceptTradeWithAuthorization:
             sc_token.balanceOf(buyer_sc.address) == 200
         )  # buyer_sc is same as seller_sc
 
-        assert tx.events["TradeAccepted"]["index"] == 1
-        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st_addr
-        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st_addr
-        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
-        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeAccepted"]["STValue"] == 100
-        assert tx.events["TradeAccepted"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeAccepted)["index"] == 1
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSTAccountAddress"]
+            == seller_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSTAccountAddress"]
+            == buyer_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["SCTokenAddress"] == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeAccepted)["STValue"] == 100
+        assert event_args(tx, st_token.TradeAccepted)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -3519,19 +3672,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3550,7 +3706,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3565,11 +3721,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3581,7 +3737,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization (1st time)
         # - transaction is sent not by buyer_st_addr but by relayer
@@ -3591,19 +3747,19 @@ class TestAcceptTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [REQUEST-TRADE] request trade with authorization (2nd time)
         # - transaction is sent not by buyer_st_addr but by relayer
-        with brownie.reverts(f"TradeRequestIsNotAcceptable: {index}"):
+        with reverts(AuthIbetWST, "TradeRequestIsNotAcceptable", index=index):
             st_token.acceptTradeWithAuthorization(
                 index,
                 nonce_2,
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -3620,19 +3776,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3651,7 +3810,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3666,11 +3825,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3682,12 +3841,13 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
-        with brownie.reverts(
-            "InvalidAuthorizationSignature: 0x0000000000000000000000000000000000000000"
+        with reverts(
+            st_token.InvalidAuthorizationSignature,
+            authorizer=ZERO_ADDRESS,
         ):
             st_token.acceptTradeWithAuthorization(
                 index + 1,  # index is not correct
@@ -3695,7 +3855,7 @@ class TestAcceptTradeWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_3
@@ -3712,19 +3872,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3743,7 +3906,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3758,11 +3921,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3774,12 +3937,15 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
-        with brownie.reverts(
-            f"ERC20InsufficientBalance: {seller_st_addr.lower()}, 100, 1000"
+        with reverts(
+            st_token.ERC20InsufficientBalance,
+            sender=seller_st_addr,
+            balance=100,
+            needed=1000,
         ):
             st_token.acceptTradeWithAuthorization(
                 index,
@@ -3787,7 +3953,7 @@ class TestAcceptTradeWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_4
@@ -3804,19 +3970,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3835,7 +4004,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3850,7 +4019,7 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] generate nonce
@@ -3863,12 +4032,15 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
-        with brownie.reverts(
-            f"ERC20InsufficientAllowance: {st_token.address.lower()}, 0, 200"
+        with reverts(
+            st_token.ERC20InsufficientAllowance,
+            spender=st_token.address,
+            allowance=0,
+            needed=200,
         ):
             st_token.acceptTradeWithAuthorization(
                 index,
@@ -3876,7 +4048,7 @@ class TestAcceptTradeWithAuthorization:
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_5
@@ -3894,19 +4066,22 @@ class TestAcceptTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token (Fake ERC20)
-        sc_token = admin.deploy(MockERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = MockERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -3925,7 +4100,7 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -3940,11 +4115,11 @@ class TestAcceptTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [ACCEPT-TRADE] SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # [ACCEPT-TRADE] generate nonce
         nonce_2 = secrets.token_bytes(32)
@@ -3956,18 +4131,18 @@ class TestAcceptTradeWithAuthorization:
         )
 
         # [ACCEPT-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [ACCEPT-TRADE] request trade with authorization
         # - ERC20 transfer is reverted
-        with brownie.reverts("SC token transfer did not succeed"):
+        with reverts("SC token transfer did not succeed"):
             st_token.acceptTradeWithAuthorization(
                 index,
                 nonce_2,
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
         # assertion
@@ -3993,18 +4168,21 @@ class TestRejectTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -4023,7 +4201,7 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -4038,7 +4216,7 @@ class TestRejectTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [REJECT-TRADE] generate nonce
@@ -4051,7 +4229,7 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REJECT-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REJECT-TRADE] reject trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
@@ -4061,7 +4239,7 @@ class TestRejectTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # assertion
@@ -4070,14 +4248,28 @@ class TestRejectTradeWithAuthorization:
         assert st_token.balanceOf(seller_st_addr) == 100
         assert st_token.balanceOf(buyer_st_addr) == 0
 
-        assert tx.events["TradeRejected"]["index"] == 1
-        assert tx.events["TradeRejected"]["sellerSTAccountAddress"] == seller_st_addr
-        assert tx.events["TradeRejected"]["buyerSTAccountAddress"] == buyer_st_addr
-        assert tx.events["TradeRejected"]["SCTokenAddress"] == sc_token.address
-        assert tx.events["TradeRejected"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeRejected"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeRejected"]["STValue"] == 100
-        assert tx.events["TradeRejected"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeRejected)["index"] == 1
+        assert (
+            event_args(tx, st_token.TradeRejected)["sellerSTAccountAddress"]
+            == seller_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["buyerSTAccountAddress"]
+            == buyer_st_addr
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["SCTokenAddress"] == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeRejected)["STValue"] == 100
+        assert event_args(tx, st_token.TradeRejected)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -4097,18 +4289,21 @@ class TestRejectTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -4127,7 +4322,7 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -4142,7 +4337,7 @@ class TestRejectTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [REJECT-TRADE] generate nonce
@@ -4157,7 +4352,7 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REJECT-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REJECT-TRADE] reject trade with authorization (1st time)
         # - transaction is sent not by buyer_st_addr but by relayer
@@ -4167,18 +4362,18 @@ class TestRejectTradeWithAuthorization:
             signature_2.v,
             signature_2.r,
             signature_2.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [REJECT-TRADE] reject trade with authorization (2nd time)
-        with brownie.reverts(f"TradeRequestIsNotAcceptable: {index}"):
+        with reverts(AuthIbetWST, "TradeRequestIsNotAcceptable", index=index):
             st_token.rejectTradeWithAuthorization(
                 index,
                 nonce_2,
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
 
     # Error_2
@@ -4195,18 +4390,21 @@ class TestRejectTradeWithAuthorization:
         relayer = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(AuthIbetWST, "AuthIbetWST", issuer.address)
-        st_token.mint(seller_st_addr, 100, {"from": issuer})
+        st_token = AuthIbetWST.deploy("AuthIbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st_addr, 100, sender=issuer)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st_addr, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st_addr,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st_addr, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st_addr, buyer_sc.address, buyer_sc.address, sender=issuer
         )
 
         # [REQUEST-TRADE] generate nonce
@@ -4225,7 +4423,7 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REQUEST-TRADE] sign the digest by seller_st_addr
-        signature_1 = brownie.web3.eth.account._sign_hash(digest_1, seller_st_pk)
+        signature_1 = sign_hash(digest_1, seller_st_pk)
 
         # [REQUEST-TRADE] request trade with authorization
         # - transaction is sent not by seller_st_addr but by relayer
@@ -4240,7 +4438,7 @@ class TestRejectTradeWithAuthorization:
             signature_1.v,
             signature_1.r,
             signature_1.s,
-            {"from": relayer},
+            sender=relayer,
         )
 
         # [REJECT-TRADE] generate nonce
@@ -4255,16 +4453,19 @@ class TestRejectTradeWithAuthorization:
         )
 
         # [REJECT-TRADE] sign the digest by buyer_st_addr
-        signature_2 = brownie.web3.eth.account._sign_hash(digest_2, buyer_st_pk)
+        signature_2 = sign_hash(digest_2, buyer_st_pk)
 
         # [REJECT-TRADE] reject trade with authorization
         # - transaction is sent not by buyer_st_addr but by relayer
-        with brownie.reverts(f"InvalidAuthorizationSignature: {buyer_st_addr.lower()}"):
+        with reverts(
+            st_token.InvalidAuthorizationSignature,
+            authorizer=buyer_st_addr,
+        ):
             st_token.rejectTradeWithAuthorization(
                 index,
                 nonce_2,
                 signature_2.v,
                 signature_2.r,
                 signature_2.s,
-                {"from": relayer},
+                sender=relayer,
             )
