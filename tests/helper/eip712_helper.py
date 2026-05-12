@@ -25,6 +25,16 @@ from eth_abi.packed import encode_packed
 from eth_utils import keccak, to_checksum_address
 
 
+def _as_bytes32(value: bytes | str) -> bytes:
+    if isinstance(value, bytes):
+        return value
+
+    if isinstance(value, str) and value.startswith("0x"):
+        return bytes.fromhex(value[2:])
+
+    raise TypeError(f"Unsupported bytes32 value: {value!r}")
+
+
 def generate_account():
     """
     Generate a new Ethereum account with a private key and address.
@@ -117,7 +127,7 @@ def generate_mint_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -170,7 +180,7 @@ def generate_burn_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -223,7 +233,7 @@ def generate_force_burn_from_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -280,7 +290,7 @@ def generate_add_account_whitelist_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -329,7 +339,7 @@ def generate_delete_account_whitelist_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -394,7 +404,7 @@ def generate_transfer_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -459,7 +469,7 @@ def generate_receive_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -528,7 +538,7 @@ def generate_request_trade_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -575,7 +585,7 @@ def generate_cancel_trade_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -622,7 +632,7 @@ def generate_accept_trade_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )
@@ -669,7 +679,7 @@ def generate_reject_trade_digest(
             ],
             [
                 "\x19\x01".encode(),
-                domain_separator,
+                _as_bytes32(domain_separator),
                 struct_hash,
             ],
         )

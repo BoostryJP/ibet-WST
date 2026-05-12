@@ -17,7 +17,7 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 """
 
-import brownie
+from tests.helper.ape_utils import ZERO_ADDRESS, event_args, reverts
 
 
 class TestDeploy:
@@ -31,7 +31,7 @@ class TestDeploy:
         issuer = users["eoa2"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # assertion
         assert token.owner() == issuer.address
@@ -55,31 +55,31 @@ class TestSetAccountManager:
         account_manager = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # enable account manager
         tx_enable = token.setAccountManager(
             account_manager.address,
             True,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # disable account manager
         tx_disable = token.setAccountManager(
             account_manager.address,
             False,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # assertion
-        assert tx_enable.events["AccountManagerUpdated"]["accountManager"] == (
+        assert event_args(tx_enable, token.AccountManagerUpdated)["accountManager"] == (
             account_manager.address
         )
-        assert tx_enable.events["AccountManagerUpdated"]["enabled"] is True
-        assert tx_disable.events["AccountManagerUpdated"]["accountManager"] == (
-            account_manager.address
-        )
-        assert tx_disable.events["AccountManagerUpdated"]["enabled"] is False
+        assert event_args(tx_enable, token.AccountManagerUpdated)["enabled"] is True
+        assert event_args(tx_disable, token.AccountManagerUpdated)[
+            "accountManager"
+        ] == (account_manager.address)
+        assert event_args(tx_disable, token.AccountManagerUpdated)["enabled"] is False
         assert token.accountManagers(account_manager.address) is False
 
     ##########################################################
@@ -95,16 +95,14 @@ class TestSetAccountManager:
         other = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # update account manager by non-owner
-        with brownie.reverts(
-            revert_msg=f"OwnableUnauthorizedAccount: {other.address.lower()}"
-        ):
+        with reverts(token, "OwnableUnauthorizedAccount", account=other.address):
             token.setAccountManager(
                 account_manager.address,
                 True,
-                {"from": other},
+                sender=other,
             )
 
 
@@ -123,14 +121,14 @@ class TestAddAccountWhiteList:
         user_1_sc_out = users["eoa5"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add account to whitelist
         tx = token.addAccountWhiteList(
             user_1_st.address,
             user_1_sc_in.address,
             user_1_sc_out.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # assertion
@@ -141,7 +139,10 @@ class TestAddAccountWhiteList:
             True,
         )
 
-        assert tx.events["AccountWhiteListAdded"]["accountAddress"] == user_1_st.address
+        assert (
+            event_args(tx, token.AccountWhiteListAdded)["accountAddress"]
+            == user_1_st.address
+        )
 
     # Normal_2
     # - Check that a delegated account manager can add an account to the whitelist
@@ -154,13 +155,13 @@ class TestAddAccountWhiteList:
         user_1_sc_out = users["eoa6"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # delegate whitelist management
         tx_delegate = token.setAccountManager(
             account_manager.address,
             True,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # add account to whitelist by delegated account manager
@@ -168,22 +169,22 @@ class TestAddAccountWhiteList:
             user_1_st.address,
             user_1_sc_in.address,
             user_1_sc_out.address,
-            {"from": account_manager},
+            sender=account_manager,
         )
 
         # assertion
         assert token.accountManagers(account_manager.address) is True
-        assert tx_delegate.events["AccountManagerUpdated"]["accountManager"] == (
-            account_manager.address
-        )
-        assert tx_delegate.events["AccountManagerUpdated"]["enabled"] is True
+        assert event_args(tx_delegate, token.AccountManagerUpdated)[
+            "accountManager"
+        ] == (account_manager.address)
+        assert event_args(tx_delegate, token.AccountManagerUpdated)["enabled"] is True
         assert token.accountWhiteList(user_1_st.address) == (
             user_1_st.address,
             user_1_sc_in.address,
             user_1_sc_out.address,
             True,
         )
-        assert tx_add.events["AccountWhiteListAdded"]["accountAddress"] == (
+        assert event_args(tx_add, token.AccountWhiteListAdded)["accountAddress"] == (
             user_1_st.address
         )
 
@@ -201,19 +202,18 @@ class TestAddAccountWhiteList:
         user_1_sc_out = users["eoa5"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add account to whitelist by non-owner or non-delegated account manager
-        with brownie.reverts(
-            revert_msg=(
-                f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"
-            )
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=user_1_st.address,
         ):
             token.addAccountWhiteList(
                 user_1_st.address,
                 user_1_sc_in.address,
                 user_1_sc_out.address,
-                {"from": user_1_st},
+                sender=user_1_st,
             )
 
 
@@ -231,26 +231,30 @@ class TestDeleteAccountWhiteList:
         user_1_sc = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add account to whitelist
         token.addAccountWhiteList(
-            user_1_st.address, user_1_sc.address, user_1_sc.address, {"from": issuer}
+            user_1_st.address,
+            user_1_sc.address,
+            user_1_sc.address,
+            sender=issuer,
         )
 
         # delete account from whitelist
-        tx = token.deleteAccountWhiteList(user_1_st.address, {"from": issuer})
+        tx = token.deleteAccountWhiteList(user_1_st.address, sender=issuer)
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
 
         assert (
-            tx.events["AccountWhiteListDeleted"]["accountAddress"] == user_1_st.address
+            event_args(tx, token.AccountWhiteListDeleted)["accountAddress"]
+            == user_1_st.address
         )
 
     # Normal_2
@@ -262,30 +266,31 @@ class TestDeleteAccountWhiteList:
         user_1_st = users["eoa3"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # initially, account is not in the whitelist
         assert token.accountWhiteList(user_1_st.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
 
         # delete account from whitelist
         # (should not raise an error even if the account is not in the whitelist)
-        tx = token.deleteAccountWhiteList(user_1_st.address, {"from": issuer})
+        tx = token.deleteAccountWhiteList(user_1_st.address, sender=issuer)
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
 
         assert (
-            tx.events["AccountWhiteListDeleted"]["accountAddress"] == user_1_st.address
+            event_args(tx, token.AccountWhiteListDeleted)["accountAddress"]
+            == user_1_st.address
         )
 
     # Normal_3
@@ -298,34 +303,35 @@ class TestDeleteAccountWhiteList:
         user_1_sc = users["eoa5"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # delegate whitelist management
-        token.setAccountManager(account_manager.address, True, {"from": issuer})
+        token.setAccountManager(account_manager.address, True, sender=issuer)
 
         # add account to whitelist
         token.addAccountWhiteList(
             user_1_st.address,
             user_1_sc.address,
             user_1_sc.address,
-            {"from": account_manager},
+            sender=account_manager,
         )
 
         # delete account from whitelist by delegated account manager
         tx = token.deleteAccountWhiteList(
             user_1_st.address,
-            {"from": account_manager},
+            sender=account_manager,
         )
 
         # assertion
         assert token.accountWhiteList(user_1_st.address) == (
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
-            brownie.ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             False,
         )
         assert (
-            tx.events["AccountWhiteListDeleted"]["accountAddress"] == user_1_st.address
+            event_args(tx, token.AccountWhiteListDeleted)["accountAddress"]
+            == user_1_st.address
         )
 
     ##########################################################
@@ -341,20 +347,22 @@ class TestDeleteAccountWhiteList:
         user_1_sc = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add account to whitelist
         token.addAccountWhiteList(
-            user_1_st.address, user_1_sc.address, user_1_sc.address, {"from": issuer}
+            user_1_st.address,
+            user_1_sc.address,
+            user_1_sc.address,
+            sender=issuer,
         )
 
         # add account to whitelist by non-owner or non-delegated account manager
-        with brownie.reverts(
-            revert_msg=(
-                f"AccountWhiteListOperationNotPermitted: {user_1_st.address.lower()}"
-            )
+        with reverts(
+            token.AccountWhiteListOperationNotPermitted,
+            caller=user_1_st.address,
         ):
-            token.deleteAccountWhiteList(user_1_st.address, {"from": user_1_st})
+            token.deleteAccountWhiteList(user_1_st.address, sender=user_1_st)
 
 
 class TestTransfer:
@@ -371,35 +379,35 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
         token.addAccountWhiteList(
             transfer_to.address,
             transfer_to.address,
             transfer_to.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transfer
-        tx = token.transfer(transfer_to.address, 50, {"from": transfer_from})
+        tx = token.transfer(transfer_to.address, 50, sender=transfer_from)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 50
         assert token.balanceOf(transfer_to.address) == 50
 
-        assert tx.events["Transfer"]["from"] == transfer_from.address
-        assert tx.events["Transfer"]["to"] == transfer_to.address
-        assert tx.events["Transfer"]["value"] == 50
+        assert event_args(tx, token.Transfer)["from"] == transfer_from.address
+        assert event_args(tx, token.Transfer)["to"] == transfer_to.address
+        assert event_args(tx, token.Transfer)["value"] == 50
 
     ##########################################################
     # Error
@@ -414,16 +422,17 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # transfer
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {transfer_from.address.lower()}"
+        with reverts(
+            token.AccountNotWhitelisted,
+            accountAddress=transfer_from.address,
         ):
-            token.transfer(transfer_to.address, 50, {"from": transfer_from})
+            token.transfer(transfer_to.address, 50, sender=transfer_from)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 100
@@ -438,24 +447,25 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # add transfer_from to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transfer
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {transfer_to.address.lower()}"
+        with reverts(
+            token.AccountNotWhitelisted,
+            accountAddress=transfer_to.address,
         ):
-            token.transfer(transfer_to.address, 50, {"from": transfer_from})
+            token.transfer(transfer_to.address, 50, sender=transfer_from)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 100
@@ -470,30 +480,33 @@ class TestTransfer:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
         token.addAccountWhiteList(
             transfer_to.address,
             transfer_to.address,
             transfer_to.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transfer
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientBalance: {transfer_from.address.lower()}, 100, 101"
+        with reverts(
+            token.ERC20InsufficientBalance,
+            sender=transfer_from.address,
+            balance=100,
+            needed=101,
         ):
-            token.transfer(transfer_to.address, 101, {"from": transfer_from})
+            token.transfer(transfer_to.address, 101, sender=transfer_from)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 100
@@ -505,28 +518,26 @@ class TestTransfer:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         transfer_from = users["eoa3"]
-        transfer_to = brownie.ZERO_ADDRESS
+        transfer_to = ZERO_ADDRESS
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
-        token.addAccountWhiteList(
-            transfer_to, transfer_to, transfer_to, {"from": issuer}
-        )
+        token.addAccountWhiteList(transfer_to, transfer_to, transfer_to, sender=issuer)
 
         # transfer
-        with brownie.reverts(revert_msg=f"ERC20InvalidReceiver: {transfer_to}"):
-            token.transfer(transfer_to, 50, {"from": transfer_from})
+        with reverts(token, "ERC20InvalidReceiver", receiver=transfer_to):
+            token.transfer(transfer_to, 50, sender=transfer_from)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 100
@@ -547,40 +558,43 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
         token.addAccountWhiteList(
             transfer_to.address,
             transfer_to.address,
             transfer_to.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # approve transfer
-        token.approve(transfer_to.address, 50, {"from": transfer_from})
+        token.approve(transfer_to.address, 50, sender=transfer_from)
 
         # transferFrom
         tx = token.transferFrom(
-            transfer_from.address, transfer_to.address, 50, {"from": transfer_to}
+            transfer_from.address,
+            transfer_to.address,
+            50,
+            sender=transfer_to,
         )
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 50
         assert token.balanceOf(transfer_to.address) == 50
 
-        assert tx.events["Transfer"]["from"] == transfer_from.address
-        assert tx.events["Transfer"]["to"] == transfer_to.address
-        assert tx.events["Transfer"]["value"] == 50
+        assert event_args(tx, token.Transfer)["from"] == transfer_from.address
+        assert event_args(tx, token.Transfer)["to"] == transfer_to.address
+        assert event_args(tx, token.Transfer)["value"] == 50
 
     ##########################################################
     # Error
@@ -595,20 +609,24 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # approve transfer
-        token.approve(transfer_to.address, 50, {"from": transfer_from})
+        token.approve(transfer_to.address, 50, sender=transfer_from)
 
         # transferFrom
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {transfer_from.address.lower()}"
+        with reverts(
+            token.AccountNotWhitelisted,
+            accountAddress=transfer_from.address,
         ):
             token.transferFrom(
-                transfer_from.address, transfer_to.address, 50, {"from": transfer_to}
+                transfer_from.address,
+                transfer_to.address,
+                50,
+                sender=transfer_to,
             )
 
         # assertion
@@ -624,28 +642,32 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # approve transfer
-        token.approve(transfer_to.address, 50, {"from": transfer_from})
+        token.approve(transfer_to.address, 50, sender=transfer_from)
 
         # add transfer_from to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transferFrom
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {transfer_to.address.lower()}"
+        with reverts(
+            token.AccountNotWhitelisted,
+            accountAddress=transfer_to.address,
         ):
             token.transferFrom(
-                transfer_from.address, transfer_to.address, 50, {"from": transfer_to}
+                transfer_from.address,
+                transfer_to.address,
+                50,
+                sender=transfer_to,
             )
 
         # assertion
@@ -661,34 +683,40 @@ class TestTransferFrom:
         transfer_to = users["eoa4"]
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # approve transfer
-        token.approve(transfer_to.address, 50, {"from": transfer_from})
+        token.approve(transfer_to.address, 50, sender=transfer_from)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
         token.addAccountWhiteList(
             transfer_to.address,
             transfer_to.address,
             transfer_to.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # transfer
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientAllowance: {transfer_to.address.lower()}, 50, 51"
+        with reverts(
+            token.ERC20InsufficientAllowance,
+            spender=transfer_to.address,
+            allowance=50,
+            needed=51,
         ):
             token.transferFrom(
-                transfer_from.address, transfer_to.address, 51, {"from": transfer_to}
+                transfer_from.address,
+                transfer_to.address,
+                51,
+                sender=transfer_to,
             )
 
         # assertion
@@ -701,31 +729,29 @@ class TestTransferFrom:
         admin = users["eoa1"]
         issuer = users["eoa2"]
         transfer_from = users["eoa3"]
-        transfer_to = brownie.ZERO_ADDRESS
+        transfer_to = ZERO_ADDRESS
 
         # deploy
-        token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # mint
-        token.mint(transfer_from.address, 100, {"from": issuer})
+        token.mint(transfer_from.address, 100, sender=issuer)
 
         # approve transfer
-        token.approve(issuer.address, 50, {"from": transfer_from})
+        token.approve(issuer.address, 50, sender=transfer_from)
 
         # add accounts to whitelist
         token.addAccountWhiteList(
             transfer_from.address,
             transfer_from.address,
             transfer_from.address,
-            {"from": issuer},
+            sender=issuer,
         )
-        token.addAccountWhiteList(
-            transfer_to, transfer_to, transfer_to, {"from": issuer}
-        )
+        token.addAccountWhiteList(transfer_to, transfer_to, transfer_to, sender=issuer)
 
         # transferFrom
-        with brownie.reverts(revert_msg=f"ERC20InvalidReceiver: {transfer_to}"):
-            token.transferFrom(transfer_from.address, transfer_to, 50, {"from": issuer})
+        with reverts(token, "ERC20InvalidReceiver", receiver=transfer_to):
+            token.transferFrom(transfer_from.address, transfer_to, 50, sender=issuer)
 
         # assertion
         assert token.balanceOf(transfer_from.address) == 100
@@ -750,23 +776,23 @@ class TestRequestTrade:
         buyer_sc_out = users["eoa8"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
             seller_st.address,
             seller_sc_in.address,
             seller_sc_out.address,
-            {"from": issuer},
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
             buyer_st.address,
             buyer_sc_in.address,
             buyer_sc_out.address,
-            {"from": issuer},
+            sender=issuer,
         )
 
         # requestTrade
@@ -776,7 +802,7 @@ class TestRequestTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # assertion
@@ -794,21 +820,29 @@ class TestRequestTrade:
             "trade_memo",
         )
 
-        assert tx.events["TradeRequested"]["index"] == 1
+        assert event_args(tx, st_token.TradeRequested)["index"] == 1
         assert (
-            tx.events["TradeRequested"]["sellerSTAccountAddress"] == seller_st.address
+            event_args(tx, st_token.TradeRequested)["sellerSTAccountAddress"]
+            == seller_st.address
         )
-        assert tx.events["TradeRequested"]["buyerSTAccountAddress"] == buyer_st.address
-        assert tx.events["TradeRequested"]["SCTokenAddress"] == sc_token.address
         assert (
-            tx.events["TradeRequested"]["sellerSCAccountAddress"]
+            event_args(tx, st_token.TradeRequested)["buyerSTAccountAddress"]
+            == buyer_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRequested)["SCTokenAddress"]
+            == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRequested)["sellerSCAccountAddress"]
             == seller_sc_in.address
         )
         assert (
-            tx.events["TradeRequested"]["buyerSCAccountAddress"] == buyer_sc_out.address
+            event_args(tx, st_token.TradeRequested)["buyerSCAccountAddress"]
+            == buyer_sc_out.address
         )
-        assert tx.events["TradeRequested"]["STValue"] == 100
-        assert tx.events["TradeRequested"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeRequested)["STValue"] == 100
+        assert event_args(tx, st_token.TradeRequested)["SCValue"] == 200
 
     # Normal_2
     # - Check that the requestTrade is successful when the same seller requests multiple trades
@@ -821,17 +855,23 @@ class TestRequestTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade 1st time
@@ -841,7 +881,7 @@ class TestRequestTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # requestTrade 2nd time with different values
@@ -851,7 +891,7 @@ class TestRequestTrade:
             200,  # ST value
             300,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # assertion
@@ -894,14 +934,15 @@ class TestRequestTrade:
         buyer_st = users["eoa4"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # requestTrade
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {seller_st.address.lower()}"
+        with reverts(
+            st_token.AccountNotWhitelisted,
+            accountAddress=seller_st.address,
         ):
             st_token.requestTrade(
                 buyer_st.address,
@@ -909,7 +950,7 @@ class TestRequestTrade:
                 100,  # ST value
                 200,  # SC value
                 "trade_memo",
-                {"from": seller_st},
+                sender=seller_st,
             )
 
         # assertion
@@ -925,19 +966,23 @@ class TestRequestTrade:
         buyer_st = users["eoa5"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # deploy SC token
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
 
         # add ST account to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
-        with brownie.reverts(
-            revert_msg=f"AccountNotWhitelisted: {buyer_st.address.lower()}"
+        with reverts(
+            st_token.AccountNotWhitelisted,
+            accountAddress=buyer_st.address,
         ):
             st_token.requestTrade(
                 buyer_st.address,
@@ -945,7 +990,7 @@ class TestRequestTrade:
                 100,  # ST value
                 200,  # SC value
                 "trade_memo",
-                {"from": seller_st},
+                sender=seller_st,
             )
 
         # assertion
@@ -967,14 +1012,20 @@ class TestCancelTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -984,28 +1035,39 @@ class TestCancelTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # cancelTrade
         index = st_token.getNbTrades()
-        tx = st_token.cancelTrade(index, {"from": seller_st})
+        tx = st_token.cancelTrade(index, sender=seller_st)
 
         # assertion
         assert st_token.getTrade(1)[7] == 2  # status (Cancelled)
 
-        assert tx.events["TradeCancelled"]["index"] == index
+        assert event_args(tx, st_token.TradeCancelled)["index"] == index
         assert (
-            tx.events["TradeCancelled"]["sellerSTAccountAddress"] == seller_st.address
+            event_args(tx, st_token.TradeCancelled)["sellerSTAccountAddress"]
+            == seller_st.address
         )
-        assert tx.events["TradeCancelled"]["buyerSTAccountAddress"] == buyer_st.address
-        assert tx.events["TradeCancelled"]["SCTokenAddress"] == st_token.address
         assert (
-            tx.events["TradeCancelled"]["sellerSCAccountAddress"] == seller_sc.address
+            event_args(tx, st_token.TradeCancelled)["buyerSTAccountAddress"]
+            == buyer_st.address
         )
-        assert tx.events["TradeCancelled"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeCancelled"]["STValue"] == 100
-        assert tx.events["TradeCancelled"]["SCValue"] == 200
+        assert (
+            event_args(tx, st_token.TradeCancelled)["SCTokenAddress"]
+            == st_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeCancelled)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeCancelled)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeCancelled)["STValue"] == 100
+        assert event_args(tx, st_token.TradeCancelled)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -1022,14 +1084,20 @@ class TestCancelTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -1039,16 +1107,16 @@ class TestCancelTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # cancelTrade (1st time)
         index = st_token.getNbTrades()
-        st_token.cancelTrade(index, {"from": seller_st})
+        st_token.cancelTrade(index, sender=seller_st)
 
         # cancelTrade (2nd time)
-        with brownie.reverts(revert_msg=f"TradeRequestIsNotAcceptable: {index}"):
-            st_token.cancelTrade(index, {"from": seller_st})
+        with reverts(st_token, "TradeRequestIsNotAcceptable", index=index):
+            st_token.cancelTrade(index, sender=seller_st)
 
     # Error_2
     # - Check that the cancelTrade fails when the caller is not the seller
@@ -1061,14 +1129,20 @@ class TestCancelTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -1078,15 +1152,17 @@ class TestCancelTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # cancelTrade
         index = st_token.getNbTrades()
-        with brownie.reverts(
-            revert_msg=f"TradeRequestNotAcceptableByCaller: {index}, {buyer_st.address.lower()}"
+        with reverts(
+            st_token.TradeRequestNotAcceptableByCaller,
+            index=index,
+            caller=buyer_st.address,
         ):
-            st_token.cancelTrade(index, {"from": buyer_st})
+            st_token.cancelTrade(index, sender=buyer_st)
 
 
 class TestAcceptTrade:
@@ -1105,19 +1181,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1127,14 +1209,14 @@ class TestAcceptTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        tx = st_token.acceptTrade(1, {"from": buyer_st})
+        tx = st_token.acceptTrade(1, sender=buyer_st)
 
         # assertion
         assert st_token.getTrade(1)[7] == 1  # status (Executed)
@@ -1144,14 +1226,28 @@ class TestAcceptTrade:
         assert sc_token.balanceOf(seller_sc.address) == 200
         assert sc_token.balanceOf(buyer_sc.address) == 0
 
-        assert tx.events["TradeAccepted"]["index"] == 1
-        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st.address
-        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st.address
-        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
-        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeAccepted"]["STValue"] == 100
-        assert tx.events["TradeAccepted"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeAccepted)["index"] == 1
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSTAccountAddress"]
+            == seller_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSTAccountAddress"]
+            == buyer_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["SCTokenAddress"] == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeAccepted)["STValue"] == 100
+        assert event_args(tx, st_token.TradeAccepted)["SCValue"] == 200
 
     # Normal_2
     # - Check that the acceptTrade is successful with same seller and buyer SC accounts
@@ -1164,19 +1260,25 @@ class TestAcceptTrade:
         buyer_sc = seller_sc  # Reusing seller_sc as buyer_sc for this test
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1186,14 +1288,14 @@ class TestAcceptTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        tx = st_token.acceptTrade(1, {"from": buyer_st})
+        tx = st_token.acceptTrade(1, sender=buyer_st)
 
         # assertion
         assert st_token.getTrade(1)[7] == 1  # status (Executed)
@@ -1207,14 +1309,28 @@ class TestAcceptTrade:
             sc_token.balanceOf(buyer_sc.address) == 200
         )  # buyer_sc is same as seller_sc
 
-        assert tx.events["TradeAccepted"]["index"] == 1
-        assert tx.events["TradeAccepted"]["sellerSTAccountAddress"] == seller_st.address
-        assert tx.events["TradeAccepted"]["buyerSTAccountAddress"] == buyer_st.address
-        assert tx.events["TradeAccepted"]["SCTokenAddress"] == sc_token.address
-        assert tx.events["TradeAccepted"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeAccepted"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeAccepted"]["STValue"] == 100
-        assert tx.events["TradeAccepted"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeAccepted)["index"] == 1
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSTAccountAddress"]
+            == seller_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSTAccountAddress"]
+            == buyer_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["SCTokenAddress"] == sc_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeAccepted)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeAccepted)["STValue"] == 100
+        assert event_args(tx, st_token.TradeAccepted)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -1231,19 +1347,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1253,18 +1375,18 @@ class TestAcceptTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        st_token.acceptTrade(1, {"from": buyer_st})
+        st_token.acceptTrade(1, sender=buyer_st)
 
         # ST: acceptTrade again
-        with brownie.reverts(revert_msg="TradeRequestIsNotAcceptable: 1"):
-            st_token.acceptTrade(1, {"from": buyer_st})
+        with reverts(st_token, "TradeRequestIsNotAcceptable", index=1):
+            st_token.acceptTrade(1, sender=buyer_st)
 
     # Error_2
     # - Check that the acceptTrade fails when the caller is not the buyer
@@ -1277,19 +1399,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1299,17 +1427,19 @@ class TestAcceptTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        with brownie.reverts(
-            revert_msg=f"TradeRequestNotAcceptableByCaller: 1, {seller_st.address.lower()}"
+        with reverts(
+            st_token.TradeRequestNotAcceptableByCaller,
+            index=1,
+            caller=seller_st.address,
         ):
-            st_token.acceptTrade(1, {"from": seller_st})
+            st_token.acceptTrade(1, sender=seller_st)
 
     # Error_3
     # - Check that the acceptTrade fails when the buyer does not have enough ST balance
@@ -1322,19 +1452,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1344,17 +1480,20 @@ class TestAcceptTrade:
             101,  # ST value, insufficient
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientBalance: {seller_st.address.lower()}, 100, 101"
+        with reverts(
+            st_token.ERC20InsufficientBalance,
+            sender=seller_st.address,
+            balance=100,
+            needed=101,
         ):
-            st_token.acceptTrade(1, {"from": buyer_st})
+            st_token.acceptTrade(1, sender=buyer_st)
 
     # Error_4
     # - Check that the acceptTrade fails when the ST contract does not have enough SC allowance
@@ -1367,19 +1506,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token & mint buyer balance
-        sc_token = admin.deploy(IbetERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = IbetERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1389,19 +1534,22 @@ class TestAcceptTrade:
             100,  # ST value
             201,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
         sc_token.approve(
-            st_token.address, 200, {"from": buyer_sc}
+            st_token.address, 200, sender=buyer_sc
         )  # insufficient allowance
 
         # ST: acceptTrade
-        with brownie.reverts(
-            revert_msg=f"ERC20InsufficientAllowance: {st_token.address.lower()}, 200, 201"
+        with reverts(
+            st_token.ERC20InsufficientAllowance,
+            spender=st_token.address,
+            allowance=200,
+            needed=201,
         ):
-            st_token.acceptTrade(1, {"from": buyer_st})
+            st_token.acceptTrade(1, sender=buyer_st)
 
     # Error_5
     # - SC token transfer did not succeed
@@ -1415,19 +1563,25 @@ class TestAcceptTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token & mint seller balance
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
-        st_token.mint(seller_st.address, 100, {"from": issuer})
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
+        st_token.mint(seller_st.address, 100, sender=issuer)
 
         # deploy SC token (Fake ERC20) & mint buyer balance
-        sc_token = admin.deploy(MockERC20, "IbetERC20", issuer.address)
-        sc_token.mint(buyer_sc.address, 200, {"from": issuer})
+        sc_token = MockERC20.deploy("IbetERC20", issuer.address, sender=admin)
+        sc_token.mint(buyer_sc.address, 200, sender=issuer)
 
         # ST: add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # ST: requestTrade
@@ -1437,15 +1591,15 @@ class TestAcceptTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # SC: approve transfer
-        sc_token.approve(st_token.address, 200, {"from": buyer_sc})
+        sc_token.approve(st_token.address, 200, sender=buyer_sc)
 
         # ST: acceptTrade
-        with brownie.reverts("SC token transfer did not succeed"):
-            st_token.acceptTrade(1, {"from": buyer_st})
+        with reverts("SC token transfer did not succeed"):
+            st_token.acceptTrade(1, sender=buyer_st)
 
         # assertion
         assert st_token.balanceOf(seller_st.address) == 100
@@ -1467,14 +1621,20 @@ class TestRejectTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -1484,24 +1644,38 @@ class TestRejectTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # rejectTrade
         index = st_token.getNbTrades()
-        tx = st_token.rejectTrade(index, {"from": buyer_st})
+        tx = st_token.rejectTrade(index, sender=buyer_st)
 
         # assertion
         assert st_token.getTrade(1)[7] == 3  # status (Rejected)
 
-        assert tx.events["TradeRejected"]["index"] == index
-        assert tx.events["TradeRejected"]["sellerSTAccountAddress"] == seller_st.address
-        assert tx.events["TradeRejected"]["buyerSTAccountAddress"] == buyer_st.address
-        assert tx.events["TradeRejected"]["SCTokenAddress"] == st_token.address
-        assert tx.events["TradeRejected"]["sellerSCAccountAddress"] == seller_sc.address
-        assert tx.events["TradeRejected"]["buyerSCAccountAddress"] == buyer_sc.address
-        assert tx.events["TradeRejected"]["STValue"] == 100
-        assert tx.events["TradeRejected"]["SCValue"] == 200
+        assert event_args(tx, st_token.TradeRejected)["index"] == index
+        assert (
+            event_args(tx, st_token.TradeRejected)["sellerSTAccountAddress"]
+            == seller_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["buyerSTAccountAddress"]
+            == buyer_st.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["SCTokenAddress"] == st_token.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["sellerSCAccountAddress"]
+            == seller_sc.address
+        )
+        assert (
+            event_args(tx, st_token.TradeRejected)["buyerSCAccountAddress"]
+            == buyer_sc.address
+        )
+        assert event_args(tx, st_token.TradeRejected)["STValue"] == 100
+        assert event_args(tx, st_token.TradeRejected)["SCValue"] == 200
 
     ##########################################################
     # Error
@@ -1518,14 +1692,20 @@ class TestRejectTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -1535,16 +1715,16 @@ class TestRejectTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # rejectTrade (1st time)
         index = st_token.getNbTrades()
-        st_token.rejectTrade(index, {"from": buyer_st})
+        st_token.rejectTrade(index, sender=buyer_st)
 
         # rejectTrade (2nd time)
-        with brownie.reverts(revert_msg=f"TradeRequestIsNotAcceptable: {index}"):
-            st_token.rejectTrade(index, {"from": buyer_st})
+        with reverts(st_token, "TradeRequestIsNotAcceptable", index=index):
+            st_token.rejectTrade(index, sender=buyer_st)
 
     # Error_2
     # - Check that the rejectTrade fails when the caller is not the buyer
@@ -1557,14 +1737,20 @@ class TestRejectTrade:
         buyer_sc = users["eoa6"]
 
         # deploy ST token
-        st_token = admin.deploy(IbetWST, "IbetWST", issuer.address)
+        st_token = IbetWST.deploy("IbetWST", issuer.address, sender=admin)
 
         # add ST accounts to whitelist
         st_token.addAccountWhiteList(
-            seller_st.address, seller_sc.address, seller_sc.address, {"from": issuer}
+            seller_st.address,
+            seller_sc.address,
+            seller_sc.address,
+            sender=issuer,
         )
         st_token.addAccountWhiteList(
-            buyer_st.address, buyer_sc.address, buyer_sc.address, {"from": issuer}
+            buyer_st.address,
+            buyer_sc.address,
+            buyer_sc.address,
+            sender=issuer,
         )
 
         # requestTrade
@@ -1574,12 +1760,14 @@ class TestRejectTrade:
             100,  # ST value
             200,  # SC value
             "trade_memo",
-            {"from": seller_st},
+            sender=seller_st,
         )
 
         # rejectTrade
         index = st_token.getNbTrades()
-        with brownie.reverts(
-            revert_msg=f"TradeRequestNotAcceptableByCaller: {index}, {seller_st.address.lower()}"
+        with reverts(
+            st_token.TradeRequestNotAcceptableByCaller,
+            index=index,
+            caller=seller_st.address,
         ):
-            st_token.rejectTrade(index, {"from": seller_st})
+            st_token.rejectTrade(index, sender=seller_st)

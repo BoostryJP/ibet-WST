@@ -1,7 +1,0 @@
-development:
-- id: test_network
-  name: Anvil Network
-  host: http://localhost:8545
-  cmd: anvil --host 0.0.0.0 --chain-id 2025 --hardfork osaka --gas-limit 16777216 --gas-price 0 --block-base-fee-per-gas 0 --steps-tracing
-  cmd_settings:
-    port: 8545

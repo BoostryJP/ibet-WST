@@ -31,6 +31,8 @@ Setup the development environment:
 $ make setup
 ```
 
+This installs Ape plugins and Solidity dependencies for local Foundry-based development.
+
 ## Developing Smart Contracts
 
 
@@ -48,7 +50,7 @@ You can run the tests with:
 $ make test
 ```
 
-Alternatively, you can use pytest and run it as follows.
+Or you can run the particular test file with:
 ```
-$ pytest tests/
+$ make test {path_to_test_file}
 ```

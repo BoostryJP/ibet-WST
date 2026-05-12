@@ -17,16 +17,9 @@ limitations under the License.
 SPDX-License-Identifier: Apache-2.0
 """
 
-from subprocess import DEVNULL
-from typing import Generator, TypedDict
+from typing import TypedDict
 
 import pytest
-from brownie import web3
-from brownie.network.rpc import anvil as brownie_anvil_rpc
-from web3.middleware.geth_poa import geth_poa_middleware
-
-web3.middleware_onion.inject(geth_poa_middleware, layer=0)
-setattr(brownie_anvil_rpc, "PIPE", DEVNULL)
 
 
 class Users(TypedDict):
@@ -43,8 +36,8 @@ class Users(TypedDict):
 
 
 @pytest.fixture()
-def users(accounts) -> Generator[Users, None, None]:
-    users: Users = {
+def users(accounts) -> Users:
+    return {
         "eoa1": accounts[0],
         "eoa2": accounts[1],
         "eoa3": accounts[2],
@@ -57,4 +50,22 @@ def users(accounts) -> Generator[Users, None, None]:
         "eoa10": accounts[9],
     }
 
-    yield users
+
+@pytest.fixture()
+def IbetERC20(project):
+    return project.IbetERC20
+
+
+@pytest.fixture()
+def IbetWST(project):
+    return project.IbetWST
+
+
+@pytest.fixture()
+def AuthIbetWST(project):
+    return project.AuthIbetWST
+
+
+@pytest.fixture()
+def MockERC20(project):
+    return project.MockERC20
