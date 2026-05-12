@@ -20,48 +20,39 @@ SPDX-License-Identifier: Apache-2.0
 import json
 from pathlib import Path
 
-MANIFEST_PATH = Path(".build/__local__.json")
+BUILD_MANIFEST = Path(".build/__local__.json")
 OUTPUT_DIR = Path("output")
-SKIP_SOURCE_PREFIXES = ("contracts/mock/", "contracts/.cache/")
 
 
-def _is_output_target(contract_name: str, contract_type: dict) -> bool:
-    source_id = contract_type.get("sourceId", "")
-    if not source_id or source_id.startswith(SKIP_SOURCE_PREFIXES):
-        return False
+def _iter_project_contracts(manifest):
+    for name, contract in manifest.get("contractTypes", {}).items():
+        source_id = contract.get("sourceId", "")
+        if not source_id.startswith("contracts/"):
+            continue
 
-    return (
-        source_id.startswith("contracts/token/")
-        or source_id == "contracts/utils/Errors.sol"
-    )
-
-
-def _to_output_payload(contract_type: dict) -> dict:
-    payload = {"abi": contract_type.get("abi", [])}
-
-    bytecode = contract_type.get("deploymentBytecode", {}).get("bytecode", "0x")
-    deployed_bytecode = contract_type.get("runtimeBytecode", {}).get("bytecode", "0x")
-    if bytecode != "0x" or deployed_bytecode != "0x":
-        payload["bytecode"] = bytecode
-        payload["deployedBytecode"] = deployed_bytecode
-
-    return payload
+        yield name, contract
 
 
 def main():
     OUTPUT_DIR.mkdir(exist_ok=True)
+    for existing_file in OUTPUT_DIR.glob("*.json"):
+        existing_file.unlink()
 
-    with MANIFEST_PATH.open() as manifest_file:
-        manifest = json.load(manifest_file)
+    with BUILD_MANIFEST.open("r", encoding="utf-8") as file:
+        manifest = json.load(file)
 
-    for contract_name, contract_type in manifest.get("contractTypes", {}).items():
-        if not _is_output_target(contract_name, contract_type):
-            continue
+    for name, contract_json in _iter_project_contracts(manifest):
+        output = {"abi": contract_json["abi"]}
 
-        output_path = OUTPUT_DIR / f"{contract_name}.json"
-        with output_path.open("w") as output_file:
-            json.dump(_to_output_payload(contract_type), output_file, indent=2)
-            output_file.write("\n")
+        deployment = contract_json.get("deploymentBytecode", {})
+        runtime = contract_json.get("runtimeBytecode", {})
+        if "bytecode" in deployment:
+            output["bytecode"] = deployment["bytecode"]
+        if "bytecode" in runtime:
+            output["deployedBytecode"] = runtime["bytecode"]
+
+        with (OUTPUT_DIR / f"{name}.json").open("w", encoding="utf-8") as file:
+            json.dump(output, file, indent=2)
 
 
 if __name__ == "__main__":
