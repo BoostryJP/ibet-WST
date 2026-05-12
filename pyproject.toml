@@ -11,7 +11,6 @@ dependencies = [
     "ape-solidity~=0.8.5",
     "eth-ape~=0.8.49",
     "coincurve~=21.0.0",
-    "setuptools<81",
 ]
 description = "ibet Worldwide Settlement Token (WST) contract"
 
