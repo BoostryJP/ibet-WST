@@ -22,7 +22,7 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = ["--network=ethereum:local:foundry"]
-pythonpath = ["."]
+pythonpath = [".", "tests"]
 
 [tool.ruff]
 line-length = 88

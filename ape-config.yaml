@@ -28,8 +28,8 @@ foundry:
   base_fee: 0
   priority_fee: 0
   evm_version: osaka
-  request_timeout: 60
-  process_attempts: 10
+  request_timeout: 5
+  process_attempts: 3
 
 test:
   mnemonic: test test test test test test test test test test test junk
