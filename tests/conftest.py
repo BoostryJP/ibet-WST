@@ -21,6 +21,8 @@ from typing import TypedDict
 
 import pytest
 
+pytest_plugins = ("anvil_manager",)
+
 
 class Users(TypedDict):
     eoa1: str
