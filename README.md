@@ -39,9 +39,9 @@ sequenceDiagram
 
 ![workflow1.png](doc/workflow1.png)
 
-The ibet-WST token is issued and redeemed by updating the ERC-20 balance on the EVM network. These balance changes are controlled by the token owner so that WST circulation on the EVM network stays linked to the lock state of the underlying security tokens on ibet for Fin.
+The ibet-WST token is issued and redeemed by updating the ERC-20 balance on the EVM network. These balance changes are controlled by the token owner so that WST circulation on the EVM network stays linked to the lock state of the underlying security tokens on ibet.
 
-- Mint: after the corresponding security tokens are locked on ibet for Fin, the token owner calls `mint(to, value)` to issue WST to the target ST account.
+- Mint: after the corresponding security tokens are locked on ibet, the token owner calls `mint(to, value)` to issue WST to the target ST account.
 - Burn: when WST is redeemed and the corresponding ibet-side lock should be released, a holder calls `burn(value)` to redeem WST from their own balance. A spender can call `burnFrom(account, value)` after receiving an ERC-20 allowance from that account.
 - Force burn: the token owner can call `forceBurnFrom(account, value)` to burn tokens from a specified account.
 - Transfer: WST transfers are also part of the lock-linked lifecycle. Both `transfer(to, value)` and `transferFrom(from, to, value)` are allowed only when the sender and recipient ST accounts are registered in the whitelist, so WST cannot be moved to or from accounts outside whitelist management.
