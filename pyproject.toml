@@ -1,6 +1,6 @@
 [project]
 name = "ibet-WST"
-version = "26.3"
+version = "26.6"
 authors = [
     {name = "BOOSTRY Co., Ltd.", email = "dev@boostry.co.jp"},
 ]
@@ -17,7 +17,7 @@ description = "ibet Worldwide Settlement Token (WST) contract"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.0,<5.0.0",
-    "ruff<1.0.0,>=0.11.13",
+    "ruff<1.0.0,>=0.15.12",
 ]
 
 [tool.pytest.ini_options]

@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer = "2026-05-29T01:17:42.159919Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -740,7 +740,7 @@ wheels = [
 
 [[package]]
 name = "ibet-wst"
-version = "26.3"
+version = "26.6"
 source = { virtual = "." }
 dependencies = [
     { name = "ape-foundry" },
@@ -766,7 +766,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "pre-commit", specifier = ">=4.6.0,<5.0.0" },
-    { name = "ruff", specifier = ">=0.11.13,<1.0.0" },
+    { name = "ruff", specifier = ">=0.15.12,<1.0.0" },
 ]
 
 [[package]]
