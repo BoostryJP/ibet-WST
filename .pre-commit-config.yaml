@@ -5,7 +5,7 @@ repos:
       - id: ruff-format
         name: ruff-format
         entry: make format
-        language_version: python3.13
+        language_version: python3.14
   - repo: local
     hooks:
       - id: prettier-solidity
