@@ -19,10 +19,11 @@ SPDX-License-Identifier: Apache-2.0
 
 import secrets
 
-from coincurve import PublicKey
-from eth_abi import encode
+from eth_abi.abi import encode
 from eth_abi.packed import encode_packed
-from eth_utils import keccak, to_checksum_address
+from eth_keys.datatypes import PrivateKey
+from eth_utils.address import to_checksum_address
+from eth_utils.crypto import keccak
 
 
 def _as_bytes32(value: bytes | str) -> bytes:
@@ -41,8 +42,7 @@ def generate_account():
     :return: Tuple of (private_key, address)
     """
     private_key = secrets.token_bytes(32)
-    public_key = PublicKey.from_valid_secret(private_key).format(compressed=False)[1:]
-    addr = to_checksum_address(keccak(public_key)[-20:])
+    addr = PrivateKey(private_key).public_key.to_checksum_address()
     return private_key, addr
 
 
