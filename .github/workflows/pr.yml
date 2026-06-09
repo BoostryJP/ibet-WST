@@ -38,6 +38,8 @@ jobs:
         with:
           version: "1.5.1"  # stable
       - name: Install dependencies
+        env:
+          UV_MALWARE_CHECK: "1"
         run: uv sync --frozen --no-install-project
       - name: Install Solidity compiler
         run: |
