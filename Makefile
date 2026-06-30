@@ -1,4 +1,4 @@
-.PHONY: install setup update format lint compile test
+.PHONY: install setup update format lint compile test test-pbt
 
 install:
 	UV_MALWARE_CHECK=1 uv sync --frozen --no-install-project
@@ -23,4 +23,7 @@ compile:
 	uv run ape compile
 
 test: compile
-	uv run ape test --network ethereum:local:foundry tests/ ${ARG}
+	uv run ape test --network ethereum:local:foundry tests/ --ignore tests/pbt ${ARG}
+
+test-pbt: compile
+	uv run ape test --network ethereum:local:foundry tests/pbt/ --hypothesis-show-statistics ${ARG}
