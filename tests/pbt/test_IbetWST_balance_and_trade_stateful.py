@@ -59,10 +59,12 @@ class IbetWSTBalanceAndTradeStateMachine(RuleBasedStateMachine):
         self.wst_balance = {key: 0 for key in HOLDER_KEYS}
         self.sc_balance = {key: INITIAL_SC_BALANCE for key in HOLDER_KEYS}
         self.sc_allowance = {key: INITIAL_SC_BALANCE for key in HOLDER_KEYS}
+
         # WST allowances given to the shared spender account.
         self.allowance = {key: 0 for key in HOLDER_KEYS}
         self.total_supply = 0
         self.trades = {}
+
         # Trade IDs start at 1.
         self.next_trade_id = 1
 
@@ -174,7 +176,6 @@ class IbetWSTBalanceAndTradeStateMachine(RuleBasedStateMachine):
             return
 
         event("request trade")
-        # Requesting a trade does not move any tokens yet.
         self.wst.requestTrade(
             self._address(buyer_key),
             self.sc.address,
