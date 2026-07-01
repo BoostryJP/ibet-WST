@@ -67,10 +67,50 @@ jobs:
       - name: Compile contracts
         run: uv run ape compile
       - name: UnitTest
-        run: uv run ape test --network ethereum:local:foundry tests/
+        run: uv run ape test --network ethereum:local:foundry tests/ --ignore tests/pbt
       - name: Generate contract JSON
         run: uv run python tools/json_filter.py
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: contract-json
           path: output
+  pbt-test:
+    name: "PBT tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: "3.14"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+      - name: Set up Foundry
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1.8.0
+        with:
+          version: "1.5.1"  # stable
+      - name: Install dependencies
+        env:
+          UV_MALWARE_CHECK: "1"
+        run: uv sync --frozen --no-install-project
+      - name: Install Solidity compiler
+        run: |
+          set -euo pipefail
+          solcx_dir="$HOME/.solcx"
+          temp_dir="$(mktemp -d)"
+          compiler_path="$temp_dir/solc-static-linux"
+          compiler_url="https://github.com/ethereum/solidity/releases/download/v0.8.34/solc-static-linux"
+          compiler_sha256="d40adc6f9fdbb22a97d32a02fa05688bf2ee7886affc48c9851b0afd4a726b39"
+          mkdir -p "$solcx_dir"
+          curl -fsSL "$compiler_url" -o "$compiler_path"
+          echo "$compiler_sha256  $compiler_path" | sha256sum --check --status
+          install -m 0755 "$compiler_path" "$solcx_dir/solc-v0.8.34"
+      - name: Install Ape dependencies
+        run: uv run ape pm install
+      - name: Compile contracts
+        run: uv run ape compile
+      - name: PBT
+        run: uv run ape test --network ethereum:local:foundry tests/pbt/ --hypothesis-show-statistics
