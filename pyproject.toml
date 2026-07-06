@@ -17,7 +17,7 @@ description = "ibet Worldwide Settlement Token (WST) contract"
 dev = [
     "hypothesis>=6.148.7,<7.0.0",
     "pre-commit>=4.6.0,<5.0.0",
-    "ruff<1.0.0,>=0.15.12",
+    "ruff>=0.15.20,<1.0.0",
 ]
 
 [tool.pytest.ini_options]
